@@ -1,10 +1,10 @@
 /* VocaDex service worker */
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const CACHE = 'vocadex-' + VERSION;
 const ASSETS = ['.', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
 });
 
 self.addEventListener('activate', e => {
@@ -13,6 +13,10 @@ self.addEventListener('activate', e => {
       keys.filter(k => k.startsWith('vocadex-') && k !== CACHE && k !== 'vocadex-meta').map(k => caches.delete(k))
     )).then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', e => {

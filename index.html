@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#c62828">
+<meta name="theme-color" content="#1b5e20">
 <title>VocaDex — Pokédex de vocabulaire</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{
-  --red:#c62828; --red-dark:#8e1c1c; --bg:#12121f; --panel:#1e1e32; --panel2:#28283f;
-  --text:#eceff4; --muted:#9aa0b5; --accent:#4fc3f7; --ok:#66bb6a; --ko:#ef5350;
+  /* Thème par défaut : 🌲 Forêt profonde */
+  --primary:#1b5e20; --primary-dark:#0d3a12; --bg:#0f1a10; --panel:#1a2b1c; --panel2:#243a26;
+  --text:#eceff4; --muted:#9db3a0; --accent:#8bc34a; --ok:#66bb6a; --ko:#ef5350;
   --commun:#8d99ae; --rare:#42a5f5; --epique:#ab47bc; --legendaire:#ffb300;
   --radius:14px;
 }
@@ -22,11 +23,14 @@ body{display:flex; flex-direction:column; min-height:100dvh;}
 
 /* ---------- Header pokédex ---------- */
 header{
-  background:linear-gradient(160deg,var(--red) 60%,var(--red-dark));
+  background:linear-gradient(160deg,var(--primary) 60%,var(--primary-dark));
   padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
   display:flex; align-items:center; gap:12px;
-  border-bottom:4px solid #6d1414; flex-shrink:0;
+  border-bottom:4px solid rgba(0,0,0,.35); flex-shrink:0;
   position:sticky; top:0; z-index:50;
+}
+body[data-theme=foret] main{
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><g fill="%238bc34a" fill-opacity="0.045"><path d="M20 30 Q30 10 40 30 Q30 44 20 30Z"/><path d="M80 85 Q92 62 100 85 Q90 100 80 85Z"/><path d="M55 60 Q50 45 65 48 Q68 62 55 60Z"/></g></svg>');
 }
 .lens{
   width:44px; height:44px; border-radius:50%;
@@ -37,11 +41,16 @@ header{
 .leds{display:flex; gap:6px; align-items:flex-start; margin-top:-14px;}
 .led{width:10px; height:10px; border-radius:50%; border:1px solid rgba(0,0,0,.35);}
 .led.r{background:#ff5252;} .led.y{background:#ffd740;}
-.led.g{background:#555; transition:background .3s;}
+.led.g{background:#2e7d32; transition:all .3s;}
 .led.g.on{background:#69f0ae; box-shadow:0 0 6px #69f0ae;}
 header h1{font-size:1.35rem; margin:0; letter-spacing:1px; text-shadow:0 2px 3px rgba(0,0,0,.35); flex:1;}
 header h1 small{font-size:.6rem; opacity:.8; font-weight:400; display:block; letter-spacing:0;}
-.capture-count{background:rgba(0,0,0,.28); border-radius:20px; padding:4px 12px; font-size:.85rem; font-weight:600;}
+.capture-count{
+  background:rgba(0,0,0,.35); border:2px solid rgba(255,255,255,.55);
+  border-radius:20px; padding:5px 13px; font-size:1.05rem; font-weight:800;
+  box-shadow:0 0 8px rgba(255,255,255,.18); display:flex; align-items:center; gap:5px;
+}
+.capture-count::before{content:'📖'; font-size:.85rem;}
 
 /* ---------- Layout ---------- */
 main{flex:1; overflow-y:auto; padding:14px 14px 90px;}
@@ -67,7 +76,7 @@ nav button.active{color:var(--accent);}
 nav button .bdg{position:relative;}
 nav button .bdg[data-n]:not([data-n="0"])::after{
   content:attr(data-n); position:absolute; top:-4px; right:-12px;
-  background:var(--red); color:#fff; font-size:.6rem; font-weight:700;
+  background:var(--primary); color:#fff; font-size:.6rem; font-weight:700;
   border-radius:10px; padding:1px 5px; min-width:16px;
 }
 
@@ -82,7 +91,7 @@ textarea{resize:vertical; min-height:60px;}
 label{font-size:.85rem; color:var(--muted);}
 .btn{
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  background:var(--red); color:#fff; border:none; border-radius:12px;
+  background:var(--primary); color:#fff; border:none; border-radius:12px;
   padding:12px 18px; font-size:1rem; font-weight:600; cursor:pointer;
   transition:transform .08s;
 }
@@ -94,7 +103,7 @@ label{font-size:.85rem; color:var(--muted);}
 .row{display:flex; gap:10px; align-items:center;}
 .row>*{flex:1;}
 .chkrow{display:flex; align-items:center; gap:10px; margin:8px 0; font-size:.95rem; color:var(--text);}
-.chkrow input{width:20px; height:20px; accent-color:var(--red);}
+.chkrow input{width:20px; height:20px; accent-color:var(--primary);}
 
 /* ---------- Pokédex ---------- */
 .searchbar{display:flex; gap:8px; margin-bottom:10px;}
@@ -167,7 +176,7 @@ label{font-size:.85rem; color:var(--muted);}
 .spinner{display:inline-block; width:18px; height:18px; border:3px solid #3a3a55; border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; vertical-align:middle;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .defpick{display:flex; gap:10px; align-items:flex-start; margin:8px 0; font-size:.88rem; line-height:1.45;}
-.defpick input{width:19px; height:19px; margin-top:2px; accent-color:var(--red); flex-shrink:0;}
+.defpick input{width:19px; height:19px; margin-top:2px; accent-color:var(--primary); flex-shrink:0;}
 
 /* ---------- Capture animation ---------- */
 #captureAnim{
@@ -178,7 +187,7 @@ label{font-size:.85rem; color:var(--muted);}
 #captureAnim.show{display:flex;}
 .ball{
   width:90px; height:90px; border-radius:50%;
-  background:linear-gradient(180deg,#e53935 0 44%,#111 44% 56%,#f5f5f5 56% 100%);
+  background:linear-gradient(180deg,var(--primary) 0 44%,#111 44% 56%,#f5f5f5 56% 100%);
   position:relative; animation:wobble 1.1s ease;
 }
 .ball::after{content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -227,6 +236,41 @@ label{font-size:.85rem; color:var(--muted);}
 #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 .syncinfo{font-size:.8rem; color:var(--muted); margin-top:6px;}
 hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
+
+/* ---------- Thèmes / apparence ---------- */
+.skingrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:8px 0;}
+.skin{
+  border:2px solid transparent; border-radius:12px; padding:8px 4px; text-align:center;
+  cursor:pointer; background:var(--panel2); font-size:.72rem; color:var(--muted); line-height:1.4;
+}
+.skin .sw{width:100%; height:22px; border-radius:8px; margin-bottom:5px;}
+.skin.on{border-color:var(--accent); color:var(--text); font-weight:600;}
+.colorrow{display:flex; align-items:center; gap:10px; margin-top:8px;}
+.colorrow input[type=color]{width:46px; height:34px; border:none; background:none; padding:0; cursor:pointer;}
+
+/* ---------- Tour guide ---------- */
+#tourWrap{position:fixed; inset:0; background:rgba(5,10,6,.82); z-index:400; display:none;
+  align-items:center; justify-content:center; padding:24px;}
+#tourWrap.open{display:flex;}
+.tourcard{
+  background:var(--panel); border:2px solid var(--accent); border-radius:20px;
+  max-width:420px; width:100%; padding:24px 20px; text-align:center;
+  animation:slideup .25s ease;
+}
+.tourcard .tic{font-size:3rem;}
+.tourcard h3{margin:10px 0 8px; font-size:1.2rem;}
+.tourcard p{color:var(--muted); font-size:.93rem; line-height:1.55; margin:0 0 16px;}
+.tourdots{display:flex; gap:6px; justify-content:center; margin-bottom:14px;}
+.tourdots span{width:8px; height:8px; border-radius:50%; background:#3a3a55;}
+.tourdots span.on{background:var(--accent);}
+
+/* ---------- Bannière mise à jour ---------- */
+#updateBar{
+  position:fixed; top:0; left:0; right:0; z-index:500; display:none;
+  background:#1565c0; color:#fff; padding:12px 16px; text-align:center;
+  font-size:.92rem; font-weight:600; cursor:pointer;
+}
+#updateBar.show{display:block;}
 </style>
 </head>
 <body>
@@ -234,9 +278,10 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
 <header>
   <div class="lens"></div>
   <div class="leds"><div class="led r"></div><div class="led y"></div><div class="led g" id="syncLed"></div></div>
-  <h1>VocaDex<small id="verLabel"></small></h1>
+  <h1>VocaDex <span id="themeDeco">🌿</span><small id="verLabel"></small></h1>
   <div class="capture-count" id="captureCount">0</div>
 </header>
+<div id="updateBar" onclick="applyUpdate()">🔄 Nouvelle version disponible — appuie ici pour mettre à jour</div>
 
 <main>
   <!-- ================= POKÉDEX ================= -->
@@ -267,7 +312,7 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
     <h2>➕ Capturer un nouveau mot</h2>
     <div class="card">
       <label>Mot anglais rencontré</label>
-      <input type="text" id="capWord" placeholder="ex : sorrow" autocapitalize="none" autocomplete="off">
+      <input type="text" id="capWord" placeholder="ex : marvelous" autocapitalize="none" autocomplete="off">
       <div class="chkrow">
         <input type="checkbox" id="capSlang">
         <span>C'est de l'argot / slang <span class="hint">(cherche sur Urban Dictionary)</span></span>
@@ -283,7 +328,7 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
       <h2>🎴 Révision</h2>
       <div class="card" id="reviewSummary"></div>
       <button class="btn full" id="btnStartReview" onclick="startReview(false)">▶️ Lancer la révision</button>
-      <button class="btn sec full" style="margin-top:10px" onclick="startReview(true)">🔁 Tout réviser (même les mots non dus)</button>
+      <button class="btn sec full" style="margin-top:10px" onclick="startReview(true)">🔁 Tout réviser</button>
     </div>
     <div id="reviewSession" style="display:none">
       <div class="flashwrap">
@@ -302,6 +347,17 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
   <!-- ================= RÉGLAGES ================= -->
   <section id="view-settings">
     <h2>⚙️ Réglages</h2>
+
+    <div class="card">
+      <b>🎨 Apparence</b>
+      <label>Skin de l'application</label>
+      <div class="skingrid" id="skinGrid"></div>
+      <div class="colorrow">
+        <input type="color" id="setBanner" onchange="setBannerColor(this.value)">
+        <span class="hint">Couleur personnalisée de la bannière</span>
+        <button class="btn sec small" onclick="setBannerColor('')">Réinitialiser</button>
+      </div>
+    </div>
 
     <div class="card">
       <b>☁️ Sauvegarde GitHub Gist</b>
@@ -353,6 +409,11 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
       <p class="hint" id="dataStats"></p>
     </div>
+
+    <div class="card">
+      <b>🧭 Aide</b>
+      <button class="btn sec full small" style="margin-top:8px" onclick="startTour()">Revoir le guide de l'application</button>
+    </div>
   </section>
 </main>
 
@@ -364,14 +425,15 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
 </nav>
 
 <div id="modalWrap" onclick="if(event.target===this)closeModal()"><div id="modal"></div></div>
-<div id="captureAnim"><div class="ball"></div><div class="msg" id="capMsg"></div><div class="sub" id="capSub"></div></div>
+<div id="captureAnim" onclick="dismissCaptureAnim()"><div class="ball"></div><div class="msg" id="capMsg"></div><div class="sub" id="capSub"></div><div class="sub" style="font-size:.75rem;opacity:.7">(appuie pour continuer)</div></div>
+<div id="tourWrap"><div class="tourcard" id="tourCard"></div></div>
 <div id="toast"></div>
 
 <script>
 /* ======================================================================
-   VocaDex v1.0.0 — Pokédex de vocabulaire anglais
+   VocaDex v1.1.0 — Pokédex de vocabulaire anglais
    ====================================================================== */
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 document.getElementById('verLabel').textContent = 'v' + APP_VERSION;
 
 /* ---------------------- État ---------------------- */
@@ -381,15 +443,16 @@ let state = {
   nextNum: 1,           // prochain numéro de capture
   badges: {},           // {id: timestamp}
   totalReviews: 0,
-  settings: { token:'', gistId:'', reminders:false, direction:'both', goal:15 },
+  settings: { token:'', gistId:'', reminders:false, direction:'both', goal:15, theme:'foret', bannerColor:'' },
   updatedAt: 0
 };
+const DEFAULT_SETTINGS = {token:'',gistId:'',reminders:false,direction:'both',goal:15,theme:'foret',bannerColor:''};
 
 function load(){
   try{
     const raw = localStorage.getItem(LS_KEY);
     if(raw){ const s = JSON.parse(raw); state = Object.assign(state, s);
-      state.settings = Object.assign({token:'',gistId:'',reminders:false,direction:'both',goal:15}, s.settings||{}); }
+      state.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings||{}); }
   }catch(e){ console.error(e); }
 }
 function persist(pushSync=true){
@@ -408,6 +471,54 @@ function toast(msg, ms=2600){
 function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function hash(s){ let h=0; for(const c of s) h=(h*31 + c.charCodeAt(0))>>>0; return h; }
 function today(){ return new Date().toISOString().slice(0,10); }
+
+/* ---------------------- Skins / apparence ---------------------- */
+const THEMES = {
+  foret:    {nm:'🌲 Forêt profonde', primary:'#1b5e20', dark:'#0d3a12', accent:'#8bc34a', bg:'#0f1a10', panel:'#1a2b1c', panel2:'#243a26', muted:'#9db3a0', deco:'🌿'},
+  riviere:  {nm:'🏞️ Rivière',        primary:'#00695c', dark:'#00382f', accent:'#4dd0e1', bg:'#0c1618', panel:'#14262a', panel2:'#1d3438', muted:'#96b2b5', deco:'💧'},
+  bois:     {nm:'🪵 Bois & racines',  primary:'#5d4037', dark:'#382018', accent:'#ffb74d', bg:'#171210', panel:'#241c18', panel2:'#312620', muted:'#b3a396', deco:'🍂'},
+  classique:{nm:'🔴 Pokédex classique',primary:'#c62828', dark:'#8e1c1c', accent:'#4fc3f7', bg:'#12121f', panel:'#1e1e32', panel2:'#28283f', muted:'#9aa0b5', deco:'⚪'},
+  nuit:     {nm:'🌙 Nuit étoilée',    primary:'#4527a0', dark:'#28166b', accent:'#b39ddb', bg:'#0e0c18', panel:'#1a1730', panel2:'#252140', muted:'#a29ab8', deco:'✨'},
+  sakura:   {nm:'🌸 Sakura',          primary:'#ad1457', dark:'#700d38', accent:'#f48fb1', bg:'#1a1016', panel:'#2b1a24', panel2:'#3a2430', muted:'#bfa3ae', deco:'🌸'}
+};
+function darken(hex, f=0.55){
+  const n = parseInt(hex.slice(1),16);
+  const r=Math.round(((n>>16)&255)*f), g=Math.round(((n>>8)&255)*f), b=Math.round((n&255)*f);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+function applyTheme(){
+  const t = THEMES[state.settings.theme] || THEMES.foret;
+  const r = document.documentElement.style;
+  let primary = t.primary, dark = t.dark;
+  if(state.settings.bannerColor){ primary = state.settings.bannerColor; dark = darken(primary); }
+  r.setProperty('--primary', primary); r.setProperty('--primary-dark', dark);
+  r.setProperty('--accent', t.accent); r.setProperty('--bg', t.bg);
+  r.setProperty('--panel', t.panel); r.setProperty('--panel2', t.panel2);
+  r.setProperty('--muted', t.muted);
+  document.body.dataset.theme = state.settings.theme;
+  $('themeDeco').textContent = t.deco;
+  const meta = document.querySelector('meta[name=theme-color]');
+  if(meta) meta.content = primary;
+}
+function setTheme(key){
+  state.settings.theme = key;
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  applyTheme(); renderSkins();
+}
+function setBannerColor(c){
+  state.settings.bannerColor = c;
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  applyTheme();
+  if(!c) toast('Couleur de bannière réinitialisée');
+}
+function renderSkins(){
+  const el = $('skinGrid'); if(!el) return;
+  el.innerHTML = Object.entries(THEMES).map(([k,t])=>`
+    <div class="skin ${state.settings.theme===k?'on':''}" onclick="setTheme('${k}')">
+      <div class="sw" style="background:linear-gradient(120deg,${t.primary},${t.accent})"></div>${t.nm}
+    </div>`).join('');
+  const bc = $('setBanner'); if(bc) bc.value = state.settings.bannerColor || (THEMES[state.settings.theme]||THEMES.foret).primary;
+}
 
 /* ---------------------- Thème pokédex ---------------------- */
 const CREATURES = {
@@ -704,13 +815,38 @@ function buildCaptureForm(word, slang, data, source){
             ${m.example?`<br><span class="hint">« ${esc(m.example)} »</span>`:''}</label>
           </div>`).join('')}
       </div>
-      <label>Traduction(s) française(s) * <span class="hint">(sépare par des virgules)</span></label>
-      <input type="text" id="capTrans" placeholder="ex : chagrin, peine" autocomplete="off">
+      <label>Traduction(s) française(s) * <span class="hint" id="transHint">(sépare par des virgules)</span></label>
+      <input type="text" id="capTrans" placeholder="ex : merveilleux, magnifique" autocomplete="off">
       <label>Notes (optionnel)</label>
       <textarea id="capNotes" placeholder="Où tu as croisé ce mot, moyen mnémotechnique…"></textarea>
-      <button class="btn full" onclick="captureWord()">🔴 Capturer !</button>
+      <button class="btn full" onclick="captureWord()">🟢 Capturer !</button>
     </div>`;
   $('capTrans').focus();
+  suggestTranslations(word);
+}
+
+/* Suggestions de traduction FR (API MyMemory, éditables) */
+async function suggestTranslations(word){
+  try{
+    const r = await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(word)+'&langpair=en|fr');
+    if(!r.ok) return;
+    const j = await r.json();
+    const cand = [];
+    const push = t => {
+      t = (t||'').replace(/[!?.]+$/,'').trim().toLowerCase();
+      if(!t || t===word.toLowerCase()) return;                       // pas de copie de l'anglais
+      if(t.replace(/\s/g,'')===word.toLowerCase().replace(/\s/g,'')) return;
+      if(t.length>40) return;
+      if(!cand.includes(t)) cand.push(t);
+    };
+    push(j.responseData && j.responseData.translatedText);
+    for(const m of (j.matches||[]).sort((a,b)=>(b.match||0)-(a.match||0))) push(m.translation);
+    const input = $('capTrans');
+    if(input && !input.value.trim() && cand.length){
+      input.value = cand.slice(0,2).join(', ');
+      const h = $('transHint'); if(h) h.textContent = '(suggestion automatique — corrige si besoin !)';
+    }
+  }catch(e){ /* hors-ligne : silencieux */ }
 }
 
 function captureWord(){
@@ -736,7 +872,14 @@ function captureWord(){
   $('capMsg').textContent = `${creatureOf(w)} « ${w.en} » a été capturé !`;
   $('capSub').textContent = `#${String(w.num).padStart(3,'0')} · ${RARITY_LABEL[w.rarity]}${w.rarity==='legendaire'?' 🎉':''}`;
   $('captureAnim').classList.add('show');
-  setTimeout(()=>{ $('captureAnim').classList.remove('show'); goTab('dex'); }, 1900);
+  clearTimeout(window._capT);
+  window._capT = setTimeout(dismissCaptureAnim, 4200);
+}
+function dismissCaptureAnim(){
+  if(!$('captureAnim').classList.contains('show')) return;
+  clearTimeout(window._capT);
+  $('captureAnim').classList.remove('show');
+  goTab('dex');
 }
 
 /* ---------------------- Révision ---------------------- */
@@ -892,7 +1035,7 @@ function renderSettings(){
   $('setReminders').checked = state.settings.reminders;
   $('setDirection').value = state.settings.direction;
   $('setGoal').value = state.settings.goal;
-  renderBadges(); refreshSyncInfo(); refreshNotifInfo();
+  renderBadges(); renderSkins(); refreshSyncInfo(); refreshNotifInfo();
   $('dataStats').textContent = `${state.words.length} mots · ${state.totalReviews} révisions`;
 }
 function saveSettings(){
@@ -1087,15 +1230,81 @@ async function writeSwMeta(){
   }catch(e){}
 }
 
+/* ---------------------- Tour guide ---------------------- */
+const TOUR = [
+  {ic:'🌿', h:'Bienvenue dans VocaDex !', p:'Ton pokédex personnel de vocabulaire anglais. Chaque mot inconnu que tu croises est une créature à capturer, apprivoiser… et maîtriser !', tab:null},
+  {ic:'➕', h:'Capture tes mots', p:'Tu croises un mot anglais inconnu ? Direction l’onglet Capturer : l’app va chercher sa définition, sa prononciation et des exemples, et te propose même une traduction. Coche « argot » pour les mots de la rue (Urban Dictionary).', tab:'capture'},
+  {ic:'📖', h:'Ton Pokédex', p:'Tous tes mots capturés, numérotés et classés par rareté. Appuie sur une fiche pour voir définitions, exemples, prononciation 🔊 et liens vers Reverso Context ou WordReference.', tab:'dex'},
+  {ic:'🎴', h:'Révise en flashcards', p:'L’app te fait réviser intelligemment : un mot raté revient souvent, un mot su s’espace de plus en plus. À force de bonnes réponses, tes mots évoluent : 🥚 → ✨ → 👑 !', tab:'review'},
+  {ic:'☁️', h:'Ne perds jamais rien', p:'Dans Réglages, colle ton token GitHub : tes mots sont sauvegardés automatiquement dans le nuage. Active aussi les rappels pour ne pas oublier de réviser.', tab:'settings'},
+  {ic:'🐣', h:'C’est parti !', p:'Capture ton premier mot et commence ta collection. Attrape-les tous !', tab:'capture'}
+];
+let tourIdx = 0;
+function startTour(){ tourIdx = 0; showTourStep(); $('tourWrap').classList.add('open'); }
+function showTourStep(){
+  const s = TOUR[tourIdx];
+  if(s.tab) goTab(s.tab);
+  $('tourCard').innerHTML = `
+    <div class="tic">${s.ic}</div>
+    <h3>${s.h}</h3>
+    <p>${s.p}</p>
+    <div class="tourdots">${TOUR.map((_,i)=>`<span class="${i===tourIdx?'on':''}"></span>`).join('')}</div>
+    <div class="row">
+      ${tourIdx>0?'<button class="btn sec small" onclick="tourPrev()">← Retour</button>':'<button class="btn sec small" onclick="endTour()">Passer</button>'}
+      <button class="btn small" onclick="tourNext()">${tourIdx===TOUR.length-1?'Terminer ✓':'Suivant →'}</button>
+    </div>`;
+}
+function tourNext(){ if(tourIdx>=TOUR.length-1) return endTour(); tourIdx++; showTourStep(); }
+function tourPrev(){ if(tourIdx>0){ tourIdx--; showTourStep(); } }
+function endTour(){
+  $('tourWrap').classList.remove('open');
+  localStorage.setItem('vocadex.tourDone','1');
+  goTab(state.words.length? 'dex':'capture');
+}
+
+/* ---------------------- Mises à jour de l'app ---------------------- */
+let waitingSW = null;
+function applyUpdate(){
+  if(waitingSW){ waitingSW.postMessage({type:'SKIP_WAITING'}); }
+  $('updateBar').classList.remove('show');
+}
+function watchForUpdates(reg){
+  function track(sw){
+    sw.addEventListener('statechange', ()=>{
+      if(sw.state==='installed' && navigator.serviceWorker.controller){
+        waitingSW = sw; $('updateBar').classList.add('show');
+      }
+    });
+  }
+  if(reg.waiting && navigator.serviceWorker.controller){ waitingSW = reg.waiting; $('updateBar').classList.add('show'); }
+  if(reg.installing) track(reg.installing);
+  reg.addEventListener('updatefound', ()=>{ if(reg.installing) track(reg.installing); });
+  // vérifier une nouvelle version à chaque retour dans l'app
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) reg.update().catch(()=>{}); });
+  setInterval(()=>reg.update().catch(()=>{}), 60*60*1000);
+}
+let refreshing = false;
+if('serviceWorker' in navigator)
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    if(refreshing) return; refreshing = true; location.reload();
+  });
+
 /* ---------------------- Démarrage ---------------------- */
 load();
+applyTheme();
 updateHeader(); renderDex(); updateDueBadge(); writeSwMeta();
 if(state.settings.token){ syncNow(false); }
 window.addEventListener('online', ()=>scheduleSync());
 
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').then(()=>{ if(state.settings.reminders) registerPeriodicSync(); });
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    watchForUpdates(reg);
+    if(state.settings.reminders) registerPeriodicSync();
+  });
 }
+
+/* Guide au premier lancement */
+if(!localStorage.getItem('vocadex.tourDone')) startTour();
 
 /* Invite d'installation */
 window.addEventListener('beforeinstallprompt', e=>{
@@ -1106,5 +1315,6 @@ window.addEventListener('beforeinstallprompt', e=>{
   }
 });
 </script>
+<!-- VocaDex v1.1.0 -->
 </body>
 </html>
