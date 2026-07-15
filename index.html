@@ -249,8 +249,9 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
 .colorrow input[type=color]{width:46px; height:34px; border:none; background:none; padding:0; cursor:pointer;}
 
 /* ---------- Tour guide ---------- */
-#tourWrap{position:fixed; inset:0; background:rgba(5,10,6,.82); z-index:400; display:none;
-  align-items:center; justify-content:center; padding:24px;}
+#tourWrap{position:fixed; inset:0; background:rgba(5,10,6,.35); z-index:400; display:none;
+  align-items:flex-end; justify-content:center;
+  padding:24px 16px calc(88px + env(safe-area-inset-bottom));}
 #tourWrap.open{display:flex;}
 .tourcard{
   background:var(--panel); border:2px solid var(--accent); border-radius:20px;
@@ -433,7 +434,7 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
 /* ======================================================================
    VocaDex v1.1.0 — Pokédex de vocabulaire anglais
    ====================================================================== */
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 document.getElementById('verLabel').textContent = 'v' + APP_VERSION;
 
 /* ---------------------- État ---------------------- */
@@ -1315,6 +1316,6 @@ window.addEventListener('beforeinstallprompt', e=>{
   }
 });
 </script>
-<!-- VocaDex v1.1.0 -->
+<!-- VocaDex v1.1.1 -->
 </body>
 </html>
