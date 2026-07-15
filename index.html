@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c62828">
+<title>VocaDex — Pokédex de vocabulaire</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --red:#c62828; --red-dark:#8e1c1c; --bg:#12121f; --panel:#1e1e32; --panel2:#28283f;
+  --text:#eceff4; --muted:#9aa0b5; --accent:#4fc3f7; --ok:#66bb6a; --ko:#ef5350;
+  --commun:#8d99ae; --rare:#42a5f5; --epique:#ab47bc; --legendaire:#ffb300;
+  --radius:14px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
+  font-family:'Segoe UI',Roboto,system-ui,sans-serif; height:100%;}
+body{display:flex; flex-direction:column; min-height:100dvh;}
+
+/* ---------- Header pokédex ---------- */
+header{
+  background:linear-gradient(160deg,var(--red) 60%,var(--red-dark));
+  padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
+  display:flex; align-items:center; gap:12px;
+  border-bottom:4px solid #6d1414; flex-shrink:0;
+  position:sticky; top:0; z-index:50;
+}
+.lens{
+  width:44px; height:44px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #bfe9ff 0%, #4fc3f7 35%, #1565c0 80%);
+  border:3px solid #f5f5f5; box-shadow:0 2px 6px rgba(0,0,0,.4);
+  flex-shrink:0;
+}
+.leds{display:flex; gap:6px; align-items:flex-start; margin-top:-14px;}
+.led{width:10px; height:10px; border-radius:50%; border:1px solid rgba(0,0,0,.35);}
+.led.r{background:#ff5252;} .led.y{background:#ffd740;}
+.led.g{background:#555; transition:background .3s;}
+.led.g.on{background:#69f0ae; box-shadow:0 0 6px #69f0ae;}
+header h1{font-size:1.35rem; margin:0; letter-spacing:1px; text-shadow:0 2px 3px rgba(0,0,0,.35); flex:1;}
+header h1 small{font-size:.6rem; opacity:.8; font-weight:400; display:block; letter-spacing:0;}
+.capture-count{background:rgba(0,0,0,.28); border-radius:20px; padding:4px 12px; font-size:.85rem; font-weight:600;}
+
+/* ---------- Layout ---------- */
+main{flex:1; overflow-y:auto; padding:14px 14px 90px;}
+section{display:none; animation:fadein .18s ease;}
+section.active{display:block;}
+@keyframes fadein{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+h2{font-size:1.05rem; margin:4px 0 12px; color:var(--accent);}
+.hint{color:var(--muted); font-size:.83rem; line-height:1.45;}
+
+/* ---------- Nav ---------- */
+nav{
+  position:fixed; bottom:0; left:0; right:0; z-index:60;
+  display:flex; background:var(--panel);
+  border-top:2px solid #000; padding-bottom:env(safe-area-inset-bottom);
+}
+nav button{
+  flex:1; background:none; border:none; color:var(--muted);
+  font-size:.68rem; padding:8px 2px 10px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+nav button .ic{font-size:1.45rem; line-height:1;}
+nav button.active{color:var(--accent);}
+nav button .bdg{position:relative;}
+nav button .bdg[data-n]:not([data-n="0"])::after{
+  content:attr(data-n); position:absolute; top:-4px; right:-12px;
+  background:var(--red); color:#fff; font-size:.6rem; font-weight:700;
+  border-radius:10px; padding:1px 5px; min-width:16px;
+}
+
+/* ---------- Composants ---------- */
+.card{background:var(--panel); border-radius:var(--radius); padding:14px; margin-bottom:12px;}
+input[type=text],input[type=password],input[type=time],input[type=number],textarea,select{
+  width:100%; background:var(--panel2); color:var(--text);
+  border:1px solid #3a3a55; border-radius:10px; padding:11px 12px;
+  font-size:1rem; margin:4px 0 10px; font-family:inherit;
+}
+textarea{resize:vertical; min-height:60px;}
+label{font-size:.85rem; color:var(--muted);}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--red); color:#fff; border:none; border-radius:12px;
+  padding:12px 18px; font-size:1rem; font-weight:600; cursor:pointer;
+  transition:transform .08s;
+}
+.btn:active{transform:scale(.96);}
+.btn.sec{background:var(--panel2); color:var(--text); border:1px solid #3a3a55;}
+.btn.small{padding:7px 12px; font-size:.85rem; border-radius:9px;}
+.btn.full{width:100%;}
+.btn:disabled{opacity:.5;}
+.row{display:flex; gap:10px; align-items:center;}
+.row>*{flex:1;}
+.chkrow{display:flex; align-items:center; gap:10px; margin:8px 0; font-size:.95rem; color:var(--text);}
+.chkrow input{width:20px; height:20px; accent-color:var(--red);}
+
+/* ---------- Pokédex ---------- */
+.searchbar{display:flex; gap:8px; margin-bottom:10px;}
+.searchbar input{margin:0;}
+.filters{display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px;}
+.filters button{
+  background:var(--panel2); border:1px solid #3a3a55; color:var(--muted);
+  border-radius:20px; padding:5px 12px; font-size:.78rem; white-space:nowrap; cursor:pointer;
+}
+.filters button.on{background:var(--accent); color:#08202c; border-color:var(--accent); font-weight:600;}
+.dexgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px;}
+.dexcard{
+  background:var(--panel); border-radius:var(--radius); padding:10px;
+  border-left:4px solid var(--commun); cursor:pointer; position:relative;
+  display:flex; flex-direction:column; gap:3px; min-height:104px;
+}
+.dexcard .num{font-size:.68rem; color:var(--muted); font-weight:600;}
+.dexcard .cre{font-size:1.7rem; position:absolute; top:8px; right:8px;}
+.dexcard .w{font-weight:700; font-size:1.02rem; margin-top:2px; word-break:break-word;}
+.dexcard .tr{font-size:.8rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
+.dexcard .stars{font-size:.7rem; color:var(--legendaire); margin-top:auto;}
+.dexcard.r-rare{border-left-color:var(--rare);} .dexcard.r-epique{border-left-color:var(--epique);}
+.dexcard.r-legendaire{border-left-color:var(--legendaire); box-shadow:0 0 10px rgba(255,179,0,.15);}
+.slangtag{font-size:.6rem; background:#5d4037; color:#ffcc80; border-radius:6px; padding:1px 6px; display:inline-block;}
+.empty{color:var(--muted); text-align:center; padding:40px 20px; font-size:.95rem; line-height:1.6;}
+
+.duebanner{
+  background:linear-gradient(120deg,#283593,#3949ab); border-radius:var(--radius);
+  padding:12px 14px; margin-bottom:12px; display:flex; align-items:center; gap:12px; cursor:pointer;
+}
+.duebanner .ic{font-size:1.6rem;}
+.duebanner b{color:#fff;} .duebanner span{font-size:.85rem; color:#c5cae9;}
+
+/* ---------- Modal ---------- */
+#modalWrap{
+  position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:100;
+  display:none; align-items:flex-end; justify-content:center;
+}
+#modalWrap.open{display:flex;}
+#modal{
+  background:var(--panel); width:100%; max-width:560px; max-height:88dvh;
+  border-radius:20px 20px 0 0; padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+  overflow-y:auto; animation:slideup .22s ease;
+}
+@keyframes slideup{from{transform:translateY(40px); opacity:0;} to{transform:none; opacity:1;}}
+.modal-head{display:flex; align-items:flex-start; gap:12px;}
+.modal-head .cre{font-size:2.6rem;}
+.modal-head h3{margin:0; font-size:1.4rem;}
+.modal-head .ph{color:var(--accent); font-size:.9rem;}
+.modal-head .num{color:var(--muted); font-size:.75rem; font-weight:600;}
+.raritytag{font-size:.68rem; font-weight:700; border-radius:6px; padding:2px 8px; display:inline-block; margin-right:6px;}
+.rt-commun{background:#37474f; color:#cfd8dc;} .rt-rare{background:#0d47a1; color:#bbdefb;}
+.rt-epique{background:#4a148c; color:#e1bee7;} .rt-legendaire{background:#5d4000; color:#ffd54f;}
+.deftxt{font-size:.92rem; line-height:1.5; margin:6px 0;}
+.deftxt .pos{color:var(--epique); font-style:italic; font-size:.8rem;}
+.extxt{font-size:.88rem; color:var(--muted); font-style:italic; border-left:3px solid #3a3a55; padding-left:10px; margin:6px 0;}
+.linkrow{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0;}
+.linkrow a{
+  background:var(--panel2); border:1px solid #3a3a55; color:var(--accent);
+  text-decoration:none; border-radius:9px; padding:8px 12px; font-size:.82rem;
+}
+.transbig{font-size:1.15rem; font-weight:600; color:#a5d6a7; margin:8px 0;}
+.masterybar{background:var(--panel2); border-radius:8px; height:10px; overflow:hidden; margin:6px 0 2px;}
+.masterybar div{height:100%; background:linear-gradient(90deg,var(--accent),var(--ok)); transition:width .3s;}
+.statline{font-size:.8rem; color:var(--muted); display:flex; justify-content:space-between; margin:3px 0;}
+
+/* ---------- Capture ---------- */
+.fetchbox{border:1px dashed #3a3a55; border-radius:var(--radius); padding:12px; margin:10px 0;}
+.spinner{display:inline-block; width:18px; height:18px; border:3px solid #3a3a55; border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.defpick{display:flex; gap:10px; align-items:flex-start; margin:8px 0; font-size:.88rem; line-height:1.45;}
+.defpick input{width:19px; height:19px; margin-top:2px; accent-color:var(--red); flex-shrink:0;}
+
+/* ---------- Capture animation ---------- */
+#captureAnim{
+  position:fixed; inset:0; z-index:200; display:none;
+  align-items:center; justify-content:center; flex-direction:column; gap:18px;
+  background:rgba(10,10,20,.92);
+}
+#captureAnim.show{display:flex;}
+.ball{
+  width:90px; height:90px; border-radius:50%;
+  background:linear-gradient(180deg,#e53935 0 44%,#111 44% 56%,#f5f5f5 56% 100%);
+  position:relative; animation:wobble 1.1s ease;
+}
+.ball::after{content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:26px; height:26px; border-radius:50%; background:#fff; border:5px solid #111;}
+@keyframes wobble{0%{transform:scale(.3) rotate(0);} 30%{transform:scale(1.15) rotate(-12deg);} 50%{transform:rotate(10deg);} 70%{transform:rotate(-8deg);} 100%{transform:scale(1) rotate(0);}}
+#captureAnim .msg{font-size:1.15rem; font-weight:700; text-align:center; padding:0 20px;}
+#captureAnim .sub{color:var(--muted);}
+
+/* ---------- Révision ---------- */
+.flashwrap{max-width:480px; margin:0 auto;}
+.progress{background:var(--panel2); height:8px; border-radius:6px; overflow:hidden; margin-bottom:14px;}
+.progress div{height:100%; background:var(--accent); transition:width .25s;}
+.flashcard{
+  background:linear-gradient(150deg,var(--panel),var(--panel2));
+  border:2px solid #3a3a55; border-radius:18px;
+  min-height:250px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; padding:24px 18px; cursor:pointer; text-align:center; position:relative;
+}
+.flashcard .dir{position:absolute; top:10px; left:14px; font-size:.7rem; color:var(--muted); letter-spacing:1px;}
+.flashcard .cre{position:absolute; top:8px; right:14px; font-size:1.5rem;}
+.flashcard .big{font-size:1.9rem; font-weight:800; word-break:break-word;}
+.flashcard .ph{color:var(--accent); font-size:.95rem;}
+.flashcard .tap{color:var(--muted); font-size:.8rem; margin-top:8px;}
+.flashcard .answer{font-size:1.4rem; font-weight:700; color:#a5d6a7;}
+.flashcard .mini{font-size:.85rem; color:var(--muted); line-height:1.5;}
+.answerbtns{display:flex; gap:12px; margin-top:16px;}
+.answerbtns button{flex:1; font-size:1.05rem; padding:15px;}
+.btn.ok{background:#2e7d32;} .btn.ko{background:#c62828;}
+.reviewend{text-align:center; padding:20px 0;}
+.reviewend .bigscore{font-size:2.6rem; font-weight:800; margin:10px 0;}
+.evoline{background:var(--panel2); border-radius:10px; padding:10px 12px; margin:8px 0; font-size:.92rem;}
+
+/* ---------- Badges ---------- */
+.badgegrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:10px; margin-top:10px;}
+.badge{background:var(--panel2); border-radius:12px; padding:10px 6px; text-align:center; opacity:.28;}
+.badge.won{opacity:1; box-shadow:0 0 8px rgba(255,179,0,.25);}
+.badge .ic{font-size:1.7rem;} .badge .nm{font-size:.62rem; color:var(--muted); margin-top:4px; line-height:1.3;}
+
+/* ---------- Toast ---------- */
+#toast{
+  position:fixed; bottom:86px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:#323248; color:#fff; padding:11px 20px; border-radius:12px;
+  font-size:.9rem; opacity:0; pointer-events:none; transition:all .25s; z-index:300;
+  max-width:88vw; text-align:center; box-shadow:0 4px 14px rgba(0,0,0,.5);
+}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.syncinfo{font-size:.8rem; color:var(--muted); margin-top:6px;}
+hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="lens"></div>
+  <div class="leds"><div class="led r"></div><div class="led y"></div><div class="led g" id="syncLed"></div></div>
+  <h1>VocaDex<small id="verLabel"></small></h1>
+  <div class="capture-count" id="captureCount">0</div>
+</header>
+
+<main>
+  <!-- ================= POKÉDEX ================= -->
+  <section id="view-dex" class="active">
+    <div id="dueBanner" class="duebanner" style="display:none" onclick="goTab('review')">
+      <div class="ic">🎴</div>
+      <div><b id="dueBannerTxt"></b><br><span>Appuie ici pour lancer la révision</span></div>
+    </div>
+    <div class="searchbar">
+      <input type="text" id="dexSearch" placeholder="🔍 Chercher un mot…" oninput="renderDex()">
+    </div>
+    <div class="filters" id="dexFilters">
+      <button data-f="all" class="on" onclick="setFilter(this)">Tous</button>
+      <button data-f="due" onclick="setFilter(this)">À réviser</button>
+      <button data-f="egg" onclick="setFilter(this)">🥚 Nouveaux</button>
+      <button data-f="mastered" onclick="setFilter(this)">👑 Maîtrisés</button>
+      <button data-f="slang" onclick="setFilter(this)">Argot</button>
+      <button data-f="legendaire" onclick="setFilter(this)">Légendaires</button>
+    </div>
+    <div class="dexgrid" id="dexGrid"></div>
+    <div class="empty" id="dexEmpty" style="display:none">
+      Ton VocaDex est vide !<br>Va dans <b>Capturer</b> pour attraper ton premier mot 🐣
+    </div>
+  </section>
+
+  <!-- ================= CAPTURE ================= -->
+  <section id="view-capture">
+    <h2>➕ Capturer un nouveau mot</h2>
+    <div class="card">
+      <label>Mot anglais rencontré</label>
+      <input type="text" id="capWord" placeholder="ex : sorrow" autocapitalize="none" autocomplete="off">
+      <div class="chkrow">
+        <input type="checkbox" id="capSlang">
+        <span>C'est de l'argot / slang <span class="hint">(cherche sur Urban Dictionary)</span></span>
+      </div>
+      <button class="btn full" id="btnSearch" onclick="searchWord()">🔍 Chercher le mot</button>
+    </div>
+    <div id="fetchResult"></div>
+  </section>
+
+  <!-- ================= RÉVISION ================= -->
+  <section id="view-review">
+    <div id="reviewHome">
+      <h2>🎴 Révision</h2>
+      <div class="card" id="reviewSummary"></div>
+      <button class="btn full" id="btnStartReview" onclick="startReview(false)">▶️ Lancer la révision</button>
+      <button class="btn sec full" style="margin-top:10px" onclick="startReview(true)">🔁 Tout réviser (même les mots non dus)</button>
+    </div>
+    <div id="reviewSession" style="display:none">
+      <div class="flashwrap">
+        <div class="progress"><div id="revProgress" style="width:0%"></div></div>
+        <div class="flashcard" id="flashcard" onclick="flipCard()"></div>
+        <div class="answerbtns" id="answerBtns" style="visibility:hidden">
+          <button class="btn ko" onclick="answer(false)">✗ Raté</button>
+          <button class="btn ok" onclick="answer(true)">✓ Trouvé</button>
+        </div>
+        <button class="btn sec full small" style="margin-top:14px" onclick="endReview(true)">Arrêter la session</button>
+      </div>
+    </div>
+    <div id="reviewEnd" style="display:none"></div>
+  </section>
+
+  <!-- ================= RÉGLAGES ================= -->
+  <section id="view-settings">
+    <h2>⚙️ Réglages</h2>
+
+    <div class="card">
+      <b>☁️ Sauvegarde GitHub Gist</b>
+      <p class="hint">Colle ici un token GitHub (scope <b>gist</b> uniquement). Tes mots seront sauvegardés automatiquement dans un Gist secret — rien n'est jamais perdu, même en changeant de téléphone.</p>
+      <label>Token GitHub</label>
+      <input type="password" id="setToken" placeholder="ghp_… ou github_pat_…">
+      <label>ID du Gist <span class="hint">(laisser vide : créé automatiquement)</span></label>
+      <input type="text" id="setGistId" placeholder="auto">
+      <div class="row">
+        <button class="btn small" onclick="saveSyncSettings()">Enregistrer</button>
+        <button class="btn sec small" onclick="syncNow(true)">🔄 Synchroniser</button>
+      </div>
+      <div class="syncinfo" id="syncInfo">Sync non configurée.</div>
+    </div>
+
+    <div class="card">
+      <b>🔔 Rappels</b>
+      <p class="hint">Sur Android, installe l'app sur l'écran d'accueil (menu Chrome → « Ajouter à l'écran d'accueil ») pour recevoir un rappel quand des mots sont à réviser.</p>
+      <div class="chkrow">
+        <input type="checkbox" id="setReminders" onchange="toggleReminders()">
+        <span>Activer les rappels de révision</span>
+      </div>
+      <div class="syncinfo" id="notifInfo"></div>
+    </div>
+
+    <div class="card">
+      <b>🎴 Révision</b>
+      <label>Sens des cartes</label>
+      <select id="setDirection" onchange="saveSettings()">
+        <option value="both">Les deux sens (EN→FR et FR→EN)</option>
+        <option value="enfr">Anglais → Français</option>
+        <option value="fren">Français → Anglais</option>
+      </select>
+      <label>Cartes par session</label>
+      <input type="number" id="setGoal" min="5" max="50" step="5" onchange="saveSettings()">
+    </div>
+
+    <div class="card">
+      <b>🏅 Badges</b>
+      <div class="badgegrid" id="badgeGrid"></div>
+    </div>
+
+    <div class="card">
+      <b>💾 Données</b>
+      <div class="row">
+        <button class="btn sec small" onclick="exportData()">Exporter (JSON)</button>
+        <button class="btn sec small" onclick="document.getElementById('importFile').click()">Importer</button>
+      </div>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <p class="hint" id="dataStats"></p>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button id="tab-dex" class="active" onclick="goTab('dex')"><span class="ic">📖</span>Pokédex</button>
+  <button id="tab-capture" onclick="goTab('capture')"><span class="ic">➕</span>Capturer</button>
+  <button id="tab-review" onclick="goTab('review')"><span class="ic bdg" id="revBadge" data-n="0">🎴</span>Réviser</button>
+  <button id="tab-settings" onclick="goTab('settings')"><span class="ic">⚙️</span>Réglages</button>
+</nav>
+
+<div id="modalWrap" onclick="if(event.target===this)closeModal()"><div id="modal"></div></div>
+<div id="captureAnim"><div class="ball"></div><div class="msg" id="capMsg"></div><div class="sub" id="capSub"></div></div>
+<div id="toast"></div>
+
+<script>
+/* ======================================================================
+   VocaDex v1.0.0 — Pokédex de vocabulaire anglais
+   ====================================================================== */
+const APP_VERSION = '1.0.0';
+document.getElementById('verLabel').textContent = 'v' + APP_VERSION;
+
+/* ---------------------- État ---------------------- */
+const LS_KEY = 'vocadex.v1';
+let state = {
+  words: [],            // fiches
+  nextNum: 1,           // prochain numéro de capture
+  badges: {},           // {id: timestamp}
+  totalReviews: 0,
+  settings: { token:'', gistId:'', reminders:false, direction:'both', goal:15 },
+  updatedAt: 0
+};
+
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){ const s = JSON.parse(raw); state = Object.assign(state, s);
+      state.settings = Object.assign({token:'',gistId:'',reminders:false,direction:'both',goal:15}, s.settings||{}); }
+  }catch(e){ console.error(e); }
+}
+function persist(pushSync=true){
+  state.updatedAt = Date.now();
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  updateHeader(); updateDueBadge(); writeSwMeta();
+  if(pushSync) scheduleSync();
+}
+
+/* ---------------------- Utilitaires ---------------------- */
+const $ = id => document.getElementById(id);
+function toast(msg, ms=2600){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), ms);
+}
+function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function hash(s){ let h=0; for(const c of s) h=(h*31 + c.charCodeAt(0))>>>0; return h; }
+function today(){ return new Date().toISOString().slice(0,10); }
+
+/* ---------------------- Thème pokédex ---------------------- */
+const CREATURES = {
+  commun:     ['🐛','🐭','🐤','🐟','🐌','🐿️','🐸','🐰'],
+  rare:       ['🦊','🦉','🐺','🦈','🐍','🦅','🐢','🦡'],
+  epique:     ['🦄','🐉','🦂','🐙','🦖','🐆','🦚','🦬'],
+  legendaire: ['🐲','🔱','⚡','🌟','🦕','🔥']
+};
+const RARITY_LABEL = {commun:'Commun', rare:'Rare', epique:'Épique', legendaire:'Légendaire'};
+
+function computeRarity(word, slang, nbMeanings){
+  const score = word.length + nbMeanings*2 + (slang?4:0) + (hash(word)%4);
+  if(score >= 18) return 'legendaire';
+  if(score >= 13) return 'epique';
+  if(score >= 9)  return 'rare';
+  return 'commun';
+}
+function creatureOf(w){ const pool = CREATURES[w.rarity]||CREATURES.commun; return pool[hash(w.en)%pool.length]; }
+
+/* Maîtrise : streak combiné selon la direction de révision */
+function masteryStreak(w){
+  const a = w.srs.enfr.streak, b = w.srs.fren.streak;
+  const d = state.settings.direction;
+  if(d==='enfr') return a; if(d==='fren') return b;
+  return Math.floor((a+b)/2);
+}
+function seenCount(w){ return w.srs.enfr.right + w.srs.enfr.wrong + w.srs.fren.right + w.srs.fren.wrong; }
+function stageOf(w){
+  if(seenCount(w)===0) return 0;           // 🥚 jamais révisé
+  const s = masteryStreak(w);
+  if(s>=5) return 3;                        // 👑 maîtrisé
+  if(s>=2) return 2;                        // ✨ apprivoisé
+  return 1;                                 // capturé
+}
+const STAGE_LABEL = ['🥚 Nouveau','Capturé','✨ Apprivoisé','👑 Maîtrisé'];
+function stageIcon(w){
+  const st = stageOf(w);
+  if(st===0) return '🥚';
+  let ic = creatureOf(w);
+  if(st===2) ic += '✨'; if(st===3) ic += '👑';
+  return ic;
+}
+function starsOf(w){ const s = Math.min(masteryStreak(w),5); return '★'.repeat(s)+'☆'.repeat(5-s); }
+
+/* ---------------------- SRS (algorithme adaptatif) ---------------------- */
+/* Intervalle (jours) selon le streak — comme guitare/ukulélé : juste = espacé, faux = rapproché */
+const INTERVALS = [0, 1, 2, 4, 7, 15, 30, 60];
+function newSrs(){ return {right:0, wrong:0, streak:0, last:0}; }
+function isDue(srs, now=Date.now()){
+  if(srs.right+srs.wrong===0) return true;                    // jamais vu
+  const iv = INTERVALS[Math.min(srs.streak, INTERVALS.length-1)];
+  return now - srs.last >= iv*86400000;
+}
+function weightOf(srs, now=Date.now()){
+  // plus d'erreurs → plus lourd → présenté plus souvent
+  let w = (srs.wrong + 1) / (srs.right + 1);
+  w = Math.max(.25, Math.min(8, w));
+  const days = (now - srs.last)/86400000;
+  if(srs.last && days > 3) w *= 1 + Math.min(days/15, 2);     // bonus d'ancienneté
+  if(srs.right+srs.wrong===0) w *= 2;                          // les nouveaux d'abord
+  return w;
+}
+function directionsActive(){
+  const d = state.settings.direction;
+  return d==='both' ? ['enfr','fren'] : [d];
+}
+function dueCards(all=false){
+  const now = Date.now(), out=[];
+  for(const w of state.words)
+    for(const dir of directionsActive())
+      if(all || isDue(w.srs[dir], now)) out.push({w, dir, weight: weightOf(w.srs[dir], now)});
+  return out;
+}
+function sampleCards(pool, n){
+  const picked=[], p=[...pool];
+  while(picked.length<n && p.length){
+    const tot = p.reduce((s,c)=>s+c.weight,0);
+    let r = Math.random()*tot, idx=0;
+    for(let i=0;i<p.length;i++){ r-=p[i].weight; if(r<=0){ idx=i; break; } }
+    picked.push(p.splice(idx,1)[0]);
+  }
+  // éviter le même mot deux fois de suite
+  for(let i=1;i<picked.length;i++)
+    if(picked[i].w.id===picked[i-1].w.id){
+      const j = picked.findIndex((c,k)=>k>i && c.w.id!==picked[i-1].w.id);
+      if(j>0) [picked[i],picked[j]]=[picked[j],picked[i]];
+    }
+  return picked;
+}
+
+/* ---------------------- Navigation ---------------------- */
+function goTab(name){
+  document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  $('view-'+name).classList.add('active');
+  $('tab-'+name).classList.add('active');
+  if(name==='dex') renderDex();
+  if(name==='review') renderReviewHome();
+  if(name==='settings') renderSettings();
+  window.scrollTo(0,0);
+}
+
+function updateHeader(){ $('captureCount').textContent = state.words.length; }
+function updateDueBadge(){
+  const seen = new Set(dueCards().map(c=>c.w.id));
+  $('revBadge').dataset.n = seen.size;
+  const banner = $('dueBanner');
+  if(seen.size>0){
+    banner.style.display='flex';
+    $('dueBannerTxt').textContent = seen.size===1 ? '1 mot t’attend pour la révision !' : seen.size+' mots t’attendent pour la révision !';
+  } else banner.style.display='none';
+}
+
+/* ---------------------- Pokédex ---------------------- */
+let dexFilter='all';
+function setFilter(btn){
+  dexFilter = btn.dataset.f;
+  document.querySelectorAll('#dexFilters button').forEach(b=>b.classList.toggle('on', b===btn));
+  renderDex();
+}
+function renderDex(){
+  const q = $('dexSearch').value.trim().toLowerCase();
+  const now = Date.now();
+  let list = [...state.words].sort((a,b)=>b.num-a.num);
+  if(q) list = list.filter(w => w.en.toLowerCase().includes(q) || w.translations.join(' ').toLowerCase().includes(q));
+  if(dexFilter==='due') list = list.filter(w => directionsActive().some(d=>isDue(w.srs[d],now)));
+  if(dexFilter==='egg') list = list.filter(w => stageOf(w)===0);
+  if(dexFilter==='mastered') list = list.filter(w => stageOf(w)===3);
+  if(dexFilter==='slang') list = list.filter(w => w.slang);
+  if(dexFilter==='legendaire') list = list.filter(w => w.rarity==='legendaire');
+
+  $('dexGrid').innerHTML = list.map(w => `
+    <div class="dexcard r-${w.rarity}" onclick="openWord(${w.id})">
+      <span class="num">#${String(w.num).padStart(3,'0')}</span>
+      <span class="cre">${stageIcon(w)}</span>
+      <span class="w">${esc(w.en)}</span>
+      <span class="tr">${esc(w.translations.join(', '))}</span>
+      <span class="stars">${starsOf(w)} ${w.slang?'<span class="slangtag">argot</span>':''}</span>
+    </div>`).join('');
+  $('dexEmpty').style.display = state.words.length ? 'none':'block';
+  updateDueBadge();
+}
+
+/* ---------------------- Fiche mot (modal) ---------------------- */
+function openWord(id){
+  const w = state.words.find(x=>x.id===id); if(!w) return;
+  const links = wordLinks(w.en);
+  $('modal').innerHTML = `
+    <div class="modal-head">
+      <div class="cre">${stageIcon(w)}</div>
+      <div style="flex:1">
+        <div class="num">#${String(w.num).padStart(3,'0')} · capturé le ${new Date(w.addedAt).toLocaleDateString('fr-FR')}</div>
+        <h3>${esc(w.en)} <button class="btn sec small" style="vertical-align:middle" onclick="playWord(${w.id})">🔊</button></h3>
+        <div class="ph">${esc(w.phonetic||'')}</div>
+        <div style="margin-top:6px">
+          <span class="raritytag rt-${w.rarity}">${RARITY_LABEL[w.rarity]}</span>
+          ${w.slang?'<span class="slangtag">argot</span>':''}
+          <span class="hint">${STAGE_LABEL[stageOf(w)]}</span>
+        </div>
+      </div>
+    </div>
+    <div class="transbig">🇫🇷 ${esc(w.translations.join(', '))}</div>
+    <div class="masterybar"><div style="width:${Math.min(masteryStreak(w),5)*20}%"></div></div>
+    <div class="statline"><span>${starsOf(w)}</span><span>EN→FR : ${w.srs.enfr.right}✓ ${w.srs.enfr.wrong}✗ · FR→EN : ${w.srs.fren.right}✓ ${w.srs.fren.wrong}✗</span></div>
+    ${w.meanings.length?'<hr><b>📚 Définitions</b>'+w.meanings.map(m=>`
+      <div class="deftxt"><span class="pos">${esc(m.pos||'')}</span> ${esc(m.def)}</div>
+      ${m.example?`<div class="extxt">« ${esc(m.example)} »</div>`:''}`).join(''):''}
+    ${w.notes?`<hr><b>📝 Notes</b><div class="deftxt">${esc(w.notes)}</div>`:''}
+    <hr><b>🔗 Aller plus loin</b>
+    <div class="linkrow">
+      <a href="${links.reverso}" target="_blank" rel="noopener">Reverso Context ↗</a>
+      <a href="${links.wordref}" target="_blank" rel="noopener">WordReference ↗</a>
+      <a href="${links.urban}" target="_blank" rel="noopener">Urban Dictionary ↗</a>
+      <a href="${links.cambridge}" target="_blank" rel="noopener">Cambridge ↗</a>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn sec small" onclick="editWord(${w.id})">✏️ Modifier</button>
+      <button class="btn sec small" style="color:var(--ko)" onclick="deleteWord(${w.id})">🗑️ Relâcher</button>
+    </div>`;
+  $('modalWrap').classList.add('open');
+}
+function wordLinks(en){
+  const e = encodeURIComponent(en.toLowerCase());
+  return {
+    reverso: `https://context.reverso.net/traduction/anglais-francais/${e}`,
+    wordref: `https://www.wordreference.com/enfr/${e}`,
+    urban:   `https://www.urbandictionary.com/define.php?term=${e}`,
+    cambridge:`https://dictionary.cambridge.org/dictionary/english-french/${e}`
+  };
+}
+function closeModal(){ $('modalWrap').classList.remove('open'); }
+
+function playWord(id){
+  const w = state.words.find(x=>x.id===id); if(!w) return;
+  if(w.audio){ new Audio(w.audio).play().catch(()=>speak(w.en)); }
+  else speak(w.en);
+}
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=.9;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+function editWord(id){
+  const w = state.words.find(x=>x.id===id); if(!w) return;
+  $('modal').innerHTML = `
+    <h3>✏️ Modifier « ${esc(w.en)} »</h3>
+    <label>Traductions (séparées par des virgules)</label>
+    <input type="text" id="editTrans" value="${esc(w.translations.join(', '))}">
+    <label>Phonétique</label>
+    <input type="text" id="editPhon" value="${esc(w.phonetic||'')}">
+    <label>Notes personnelles</label>
+    <textarea id="editNotes">${esc(w.notes||'')}</textarea>
+    <div class="row">
+      <button class="btn small" onclick="saveEdit(${w.id})">Enregistrer</button>
+      <button class="btn sec small" onclick="openWord(${w.id})">Annuler</button>
+    </div>`;
+}
+function saveEdit(id){
+  const w = state.words.find(x=>x.id===id); if(!w) return;
+  const tr = $('editTrans').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!tr.length){ toast('Il faut au moins une traduction'); return; }
+  w.translations = tr; w.phonetic = $('editPhon').value.trim(); w.notes = $('editNotes').value.trim();
+  w.updatedAt = Date.now();
+  persist(); renderDex(); openWord(id); toast('Fiche mise à jour ✓');
+}
+function deleteWord(id){
+  const w = state.words.find(x=>x.id===id); if(!w) return;
+  if(!confirm(`Relâcher « ${w.en} » dans la nature ? Cette fiche sera supprimée.`)) return;
+  state.words = state.words.filter(x=>x.id!==id);
+  persist(); closeModal(); renderDex(); toast(`« ${w.en} » a été relâché 🕊️`);
+}
+
+/* ---------------------- Capture ---------------------- */
+let pendingWord = null;
+
+async function searchWord(){
+  const word = $('capWord').value.trim().toLowerCase();
+  if(!word){ toast('Écris d’abord un mot anglais'); return; }
+  const dup = state.words.find(w=>w.en.toLowerCase()===word);
+  if(dup){ toast(`« ${word} » est déjà dans ton VocaDex (#${String(dup.num).padStart(3,'0')})`); openWord(dup.id); return; }
+  const slang = $('capSlang').checked;
+  $('btnSearch').disabled = true;
+  $('fetchResult').innerHTML = `<div class="card"><span class="spinner"></span> Recherche de « ${esc(word)} »…</div>`;
+  let data = null, source = '';
+  try{
+    if(slang){ data = await fetchUrban(word); source='Urban Dictionary'; }
+    else{
+      data = await fetchDict(word);
+      source='dictionaryapi.dev';
+      if(!data){ data = await fetchUrban(word); source='Urban Dictionary'; }
+    }
+  }catch(e){ console.error(e); }
+  $('btnSearch').disabled = false;
+  buildCaptureForm(word, slang, data, source);
+}
+
+async function fetchDict(word){
+  const r = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(word));
+  if(!r.ok) return null;
+  const arr = await r.json(); if(!Array.isArray(arr)||!arr.length) return null;
+  const e = arr[0];
+  const meanings = [];
+  for(const m of e.meanings||[])
+    for(const d of (m.definitions||[]).slice(0,3))
+      meanings.push({pos:m.partOfSpeech||'', def:d.definition||'', example:d.example||''});
+  let audio='', phonetic=e.phonetic||'';
+  for(const p of e.phonetics||[]){ if(p.audio && !audio) audio=p.audio; if(p.text && !phonetic) phonetic=p.text; }
+  return { phonetic, audio, meanings: meanings.slice(0,6) };
+}
+async function fetchUrban(word){
+  const r = await fetch('https://api.urbandictionary.com/v0/define?term='+encodeURIComponent(word));
+  if(!r.ok) return null;
+  const j = await r.json(); if(!j.list||!j.list.length) return null;
+  const clean = s => (s||'').replace(/[\[\]]/g,'').replace(/\r/g,'').trim();
+  const defs = [...j.list].sort((a,b)=>(b.thumbs_up||0)-(a.thumbs_up||0)).slice(0,3);
+  return { phonetic:'', audio:'',
+    meanings: defs.map(d=>({pos:'argot', def:clean(d.definition).slice(0,400), example:clean(d.example).slice(0,250)})) };
+}
+
+function buildCaptureForm(word, slang, data, source){
+  pendingWord = { word, slang, data };
+  const meanings = data?data.meanings:[];
+  $('fetchResult').innerHTML = `
+    <div class="card">
+      <b>${esc(word)}</b> ${data&&data.phonetic?`<span style="color:var(--accent)">${esc(data.phonetic)}</span>`:''}
+      ${data?`<p class="hint">Définitions trouvées sur ${source} — décoche celles à ignorer :</p>`:
+        `<p class="hint">⚠️ Mot introuvable en ligne (ou pas de connexion). Tu peux quand même le capturer à la main.</p>`}
+      <div class="fetchbox" ${meanings.length?'':'style="display:none"'}>
+        ${meanings.map((m,i)=>`
+          <div class="defpick">
+            <input type="checkbox" id="def${i}" ${i<3?'checked':''}>
+            <label for="def${i}"><i style="color:var(--epique)">${esc(m.pos)}</i> ${esc(m.def)}
+            ${m.example?`<br><span class="hint">« ${esc(m.example)} »</span>`:''}</label>
+          </div>`).join('')}
+      </div>
+      <label>Traduction(s) française(s) * <span class="hint">(sépare par des virgules)</span></label>
+      <input type="text" id="capTrans" placeholder="ex : chagrin, peine" autocomplete="off">
+      <label>Notes (optionnel)</label>
+      <textarea id="capNotes" placeholder="Où tu as croisé ce mot, moyen mnémotechnique…"></textarea>
+      <button class="btn full" onclick="captureWord()">🔴 Capturer !</button>
+    </div>`;
+  $('capTrans').focus();
+}
+
+function captureWord(){
+  if(!pendingWord) return;
+  const tr = $('capTrans').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!tr.length){ toast('Ajoute au moins une traduction française'); return; }
+  const {word, slang, data} = pendingWord;
+  const meanings = (data?data.meanings:[]).filter((m,i)=>{ const c=$('def'+i); return c?c.checked:false; });
+  const w = {
+    id: Date.now(), num: state.nextNum++,
+    en: word, translations: tr, slang,
+    phonetic: data?data.phonetic:'', audio: data?data.audio:'',
+    meanings, notes: $('capNotes').value.trim(),
+    rarity: computeRarity(word, slang, meanings.length),
+    addedAt: Date.now(), updatedAt: Date.now(),
+    srs: { enfr:newSrs(), fren:newSrs() }
+  };
+  state.words.push(w);
+  persist(); checkBadges();
+  pendingWord = null;
+  $('capWord').value=''; $('capSlang').checked=false; $('fetchResult').innerHTML='';
+  // Animation de capture
+  $('capMsg').textContent = `${creatureOf(w)} « ${w.en} » a été capturé !`;
+  $('capSub').textContent = `#${String(w.num).padStart(3,'0')} · ${RARITY_LABEL[w.rarity]}${w.rarity==='legendaire'?' 🎉':''}`;
+  $('captureAnim').classList.add('show');
+  setTimeout(()=>{ $('captureAnim').classList.remove('show'); goTab('dex'); }, 1900);
+}
+
+/* ---------------------- Révision ---------------------- */
+let session = null;
+
+function renderReviewHome(){
+  const due = dueCards();
+  const uniq = new Set(due.map(c=>c.w.id)).size;
+  const total = state.words.length;
+  const mastered = state.words.filter(w=>stageOf(w)===3).length;
+  $('reviewSummary').innerHTML = total===0
+    ? `<div class="empty" style="padding:10px">Capture d'abord quelques mots pour pouvoir réviser !</div>`
+    : `<div class="statline"><span>📖 Mots capturés</span><b>${total}</b></div>
+       <div class="statline"><span>🎴 À réviser maintenant</span><b>${uniq}</b></div>
+       <div class="statline"><span>👑 Maîtrisés</span><b>${mastered}</b></div>
+       <div class="statline"><span>🔁 Révisions totales</span><b>${state.totalReviews}</b></div>`;
+  $('btnStartReview').disabled = due.length===0;
+  $('btnStartReview').textContent = due.length ? '▶️ Lancer la révision ('+Math.min(due.length, state.settings.goal)+' cartes)' : '✅ Rien à réviser pour l’instant';
+  $('reviewHome').style.display=''; $('reviewSession').style.display='none'; $('reviewEnd').style.display='none';
+}
+
+function startReview(all){
+  const pool = dueCards(all);
+  if(!pool.length){ toast('Rien à réviser — reviens plus tard !'); return; }
+  const cards = sampleCards(pool, state.settings.goal);
+  session = { cards, idx:0, ok:0, ko:0, flipped:false, evolutions:[], stagesBefore:{} };
+  for(const c of cards) session.stagesBefore[c.w.id] = stageOf(c.w);
+  $('reviewHome').style.display='none'; $('reviewEnd').style.display='none';
+  $('reviewSession').style.display='';
+  showCard();
+}
+
+function showCard(){
+  const c = session.cards[session.idx];
+  session.flipped = false;
+  $('revProgress').style.width = (session.idx/session.cards.length*100)+'%';
+  $('answerBtns').style.visibility='hidden';
+  const w = c.w;
+  if(c.dir==='enfr'){
+    $('flashcard').innerHTML = `
+      <span class="dir">EN → FR</span><span class="cre">${stageIcon(w)}</span>
+      <div class="big">${esc(w.en)}</div>
+      ${w.phonetic?`<div class="ph">${esc(w.phonetic)}</div>`:''}
+      <button class="btn sec small" onclick="event.stopPropagation();playWord(${w.id})">🔊 Écouter</button>
+      <div class="tap">👆 Appuie pour voir la traduction</div>`;
+  }else{
+    $('flashcard').innerHTML = `
+      <span class="dir">FR → EN</span><span class="cre">❓</span>
+      <div class="big" style="color:#a5d6a7">${esc(w.translations.join(', '))}</div>
+      <div class="tap">👆 Appuie pour voir le mot anglais</div>`;
+  }
+}
+
+function flipCard(){
+  if(!session || session.flipped) return;
+  session.flipped = true;
+  const c = session.cards[session.idx], w = c.w;
+  const hint = w.meanings.length ? `<div class="mini">${esc(w.meanings[0].def.slice(0,140))}${w.meanings[0].def.length>140?'…':''}</div>` : '';
+  if(c.dir==='enfr'){
+    $('flashcard').innerHTML = `
+      <span class="dir">EN → FR</span><span class="cre">${stageIcon(w)}</span>
+      <div class="big">${esc(w.en)}</div>
+      <div class="answer">→ ${esc(w.translations.join(', '))}</div>${hint}`;
+  }else{
+    $('flashcard').innerHTML = `
+      <span class="dir">FR → EN</span><span class="cre">${stageIcon(w)}</span>
+      <div class="big" style="color:#a5d6a7">${esc(w.translations.join(', '))}</div>
+      <div class="answer">→ ${esc(w.en)}</div>
+      ${w.phonetic?`<div class="ph">${esc(w.phonetic)}</div>`:''}
+      <button class="btn sec small" onclick="event.stopPropagation();playWord(${w.id})">🔊 Écouter</button>`;
+  }
+  $('answerBtns').style.visibility='visible';
+}
+
+function answer(ok){
+  const c = session.cards[session.idx], srs = c.w.srs[c.dir];
+  if(ok){ srs.right++; srs.streak++; session.ok++; }
+  else  { srs.wrong++; srs.streak=0; session.ko++; }
+  srs.last = Date.now();
+  c.w.updatedAt = Date.now();
+  state.totalReviews++;
+  const before = session.stagesBefore[c.w.id], after = stageOf(c.w);
+  if(after>before && !session.evolutions.find(e=>e.id===c.w.id)){
+    session.evolutions.push({id:c.w.id, en:c.w.en, stage:after});
+    session.stagesBefore[c.w.id] = after;
+  }
+  persist();
+  session.idx++;
+  if(session.idx >= session.cards.length) endReview(false);
+  else showCard();
+}
+
+function endReview(aborted){
+  if(!session) return;
+  $('revProgress').style.width='100%';
+  const {ok, ko, evolutions} = session;
+  const total = ok+ko;
+  checkBadges();
+  $('reviewSession').style.display='none';
+  $('reviewEnd').style.display='';
+  const pct = total? Math.round(ok/total*100) : 0;
+  let grade = '💪 Continue comme ça !';
+  if(pct===100 && total>0) grade='🏆 Sans faute, incroyable !';
+  else if(pct>=80) grade='🌟 Excellent !';
+  else if(pct>=60) grade='😊 Bien joué !';
+  else if(total>0) grade='🌱 Les mots ratés reviendront plus souvent, c’est le jeu !';
+  $('reviewEnd').innerHTML = `
+    <div class="reviewend">
+      <h2>${aborted?'Session interrompue':'Session terminée !'}</h2>
+      <div class="bigscore">${ok} / ${total}</div>
+      <p>${grade}</p>
+      ${evolutions.map(e=>`<div class="evoline">🎉 <b>${esc(e.en)}</b> a évolué : ${STAGE_LABEL[e.stage]} !</div>`).join('')}
+      <button class="btn full" style="margin-top:14px" onclick="renderReviewHome()">Retour</button>
+    </div>`;
+  session = null;
+  renderDex();
+}
+
+/* ---------------------- Badges ---------------------- */
+const BADGES = [
+  {id:'cap1',   ic:'🐣', nm:'1re capture',        test:s=>s.words.length>=1},
+  {id:'cap10',  ic:'📗', nm:'10 captures',         test:s=>s.words.length>=10},
+  {id:'cap25',  ic:'📘', nm:'25 captures',         test:s=>s.words.length>=25},
+  {id:'cap50',  ic:'📙', nm:'50 captures',         test:s=>s.words.length>=50},
+  {id:'cap100', ic:'📚', nm:'100 captures',        test:s=>s.words.length>=100},
+  {id:'cap151', ic:'🔴', nm:'151 captures !',      test:s=>s.words.length>=151},
+  {id:'rev50',  ic:'🎴', nm:'50 révisions',        test:s=>s.totalReviews>=50},
+  {id:'rev250', ic:'🃏', nm:'250 révisions',       test:s=>s.totalReviews>=250},
+  {id:'rev1000',ic:'🎰', nm:'1000 révisions',      test:s=>s.totalReviews>=1000},
+  {id:'mast5',  ic:'👑', nm:'5 mots maîtrisés',    test:s=>s.words.filter(w=>stageOf(w)===3).length>=5},
+  {id:'mast25', ic:'💎', nm:'25 mots maîtrisés',   test:s=>s.words.filter(w=>stageOf(w)===3).length>=25},
+  {id:'leg1',   ic:'🐲', nm:'1er légendaire',      test:s=>s.words.some(w=>w.rarity==='legendaire')},
+  {id:'slang5', ic:'😎', nm:'5 mots d’argot',      test:s=>s.words.filter(w=>w.slang).length>=5},
+];
+function checkBadges(){
+  let won = false;
+  for(const b of BADGES)
+    if(!state.badges[b.id] && b.test(state)){
+      state.badges[b.id] = Date.now(); won = true;
+      toast(`🏅 Badge obtenu : ${b.ic} ${b.nm} !`, 3500);
+    }
+  if(won){ localStorage.setItem(LS_KEY, JSON.stringify(state)); scheduleSync(); }
+}
+function renderBadges(){
+  $('badgeGrid').innerHTML = BADGES.map(b=>`
+    <div class="badge ${state.badges[b.id]?'won':''}"><div class="ic">${b.ic}</div><div class="nm">${b.nm}</div></div>`).join('');
+}
+
+/* ---------------------- Réglages ---------------------- */
+function renderSettings(){
+  $('setToken').value = state.settings.token;
+  $('setGistId').value = state.settings.gistId;
+  $('setReminders').checked = state.settings.reminders;
+  $('setDirection').value = state.settings.direction;
+  $('setGoal').value = state.settings.goal;
+  renderBadges(); refreshSyncInfo(); refreshNotifInfo();
+  $('dataStats').textContent = `${state.words.length} mots · ${state.totalReviews} révisions`;
+}
+function saveSettings(){
+  state.settings.direction = $('setDirection').value;
+  state.settings.goal = Math.max(5, Math.min(50, parseInt($('setGoal').value)||15));
+  persist(); toast('Réglages enregistrés ✓');
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(exportableState(),null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'vocadex-export-'+today()+'.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importData(ev){
+  const f = ev.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{ try{
+      const s = JSON.parse(rd.result);
+      if(!Array.isArray(s.words)) throw 0;
+      state = mergeStates(state, s);
+      persist(); renderDex(); renderSettings(); toast('Import réussi : '+state.words.length+' mots ✓');
+    }catch(e){ toast('Fichier invalide'); } };
+  rd.readAsText(f);
+  ev.target.value='';
+}
+
+/* ---------------------- Sync Gist ---------------------- */
+const GIST_FILE = 'vocadex-data.json';
+const GIST_DESC = 'VocaDex — sauvegarde du pokédex de vocabulaire';
+let syncTimer = null, syncing = false;
+
+function ghHeaders(){
+  return { 'Authorization':'token '+state.settings.token, 'Accept':'application/vnd.github+json' };
+}
+function setLed(on){ $('syncLed').classList.toggle('on', on); }
+function refreshSyncInfo(msg){
+  const el = $('syncInfo'); if(!el) return;
+  if(msg){ el.textContent = msg; return; }
+  if(!state.settings.token) el.textContent = 'Sync non configurée — colle un token pour activer la sauvegarde.';
+  else if(state.settings.gistId) el.textContent = 'Sync active · Gist '+state.settings.gistId.slice(0,8)+'… · dernière : '+(localStorage.getItem('vocadex.lastSync')||'jamais');
+  else el.textContent = 'Token enregistré — le Gist sera créé à la première synchro.';
+}
+function saveSyncSettings(){
+  state.settings.token = $('setToken').value.trim();
+  state.settings.gistId = $('setGistId').value.trim();
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  refreshSyncInfo();
+  if(state.settings.token) syncNow(true);
+}
+function scheduleSync(){
+  if(!state.settings.token || !navigator.onLine) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(()=>syncNow(false), 3000);
+}
+async function syncNow(verbose){
+  if(!state.settings.token){ if(verbose) toast('Configure d’abord ton token GitHub'); return; }
+  if(syncing) return; syncing = true;
+  try{
+    let gid = state.settings.gistId;
+    if(!gid) gid = await findOrCreateGist();
+    // récupérer le distant
+    const r = await fetch('https://api.github.com/gists/'+gid, {headers: ghHeaders()});
+    if(r.status===404){ state.settings.gistId=''; syncing=false; return syncNow(verbose); }
+    if(!r.ok) throw new Error('lecture gist HTTP '+r.status);
+    const g = await r.json();
+    const f = g.files[GIST_FILE];
+    if(f){
+      let remote = null;
+      try{
+        const txt = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
+        remote = JSON.parse(txt);
+      }catch(e){}
+      if(remote && Array.isArray(remote.words)){
+        const before = JSON.stringify([state.words, state.nextNum, state.totalReviews]);
+        state = mergeStates(state, remote);
+        const after = JSON.stringify([state.words, state.nextNum, state.totalReviews]);
+        if(before!==after){
+          localStorage.setItem(LS_KEY, JSON.stringify(state));
+          renderDex(); updateHeader();
+        }
+      }
+    }
+    // pousser le local fusionné
+    const body = JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(exportableState(),null,1) } } });
+    const p = await fetch('https://api.github.com/gists/'+gid, {method:'PATCH', headers:ghHeaders(), body});
+    if(!p.ok) throw new Error('écriture gist HTTP '+p.status);
+    state.settings.gistId = gid;
+    localStorage.setItem('vocadex.lastSync', new Date().toLocaleString('fr-FR'));
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    setLed(true); refreshSyncInfo();
+    if(verbose) toast('☁️ Synchronisé ✓');
+  }catch(e){
+    console.error('sync', e); setLed(false);
+    refreshSyncInfo('⚠️ Erreur de sync : '+e.message);
+    if(verbose) toast('Erreur de sync — vérifie le token');
+  }
+  syncing = false;
+}
+function exportableState(){
+  // le token ne sort JAMAIS de l'appareil
+  const s = JSON.parse(JSON.stringify(state));
+  delete s.settings.token;
+  return s;
+}
+async function findOrCreateGist(){
+  const r = await fetch('https://api.github.com/gists?per_page=100', {headers: ghHeaders()});
+  if(r.ok){
+    for(const g of await r.json())
+      if(g.files && g.files[GIST_FILE]){ state.settings.gistId = g.id; return g.id; }
+  }
+  const c = await fetch('https://api.github.com/gists', {method:'POST', headers:ghHeaders(),
+    body: JSON.stringify({description:GIST_DESC, public:false,
+      files:{[GIST_FILE]:{content:JSON.stringify(exportableState(),null,1)}}})});
+  if(!c.ok) throw new Error('création gist HTTP '+c.status);
+  const g = await c.json();
+  state.settings.gistId = g.id;
+  return g.id;
+}
+function mergeStates(local, remote){
+  // fusion par mot : updatedAt le plus récent gagne ; union des deux ensembles
+  const map = new Map();
+  for(const w of local.words) map.set(w.en.toLowerCase(), w);
+  for(const w of remote.words||[]){
+    const k = (w.en||'').toLowerCase(); if(!k) continue;
+    const cur = map.get(k);
+    if(!cur || (w.updatedAt||0) > (cur.updatedAt||0)) map.set(k, w);
+  }
+  const words = [...map.values()].sort((a,b)=>(a.num||0)-(b.num||0));
+  // renuméroter les collisions éventuelles de numéros
+  const seen = new Set(); let maxNum = 0;
+  for(const w of words){ maxNum = Math.max(maxNum, w.num||0); }
+  for(const w of words){
+    if(seen.has(w.num)){ maxNum++; w.num = maxNum; }
+    seen.add(w.num);
+  }
+  const out = Object.assign({}, local);
+  out.words = words;
+  out.nextNum = Math.max(local.nextNum||1, remote.nextNum||1, maxNum+1);
+  out.totalReviews = Math.max(local.totalReviews||0, remote.totalReviews||0);
+  out.badges = Object.assign({}, remote.badges||{}, local.badges||{});
+  out.settings = Object.assign({}, local.settings);   // les réglages restent locaux
+  return out;
+}
+
+/* ---------------------- Rappels / notifications ---------------------- */
+async function toggleReminders(){
+  const want = $('setReminders').checked;
+  if(want){
+    if(!('Notification' in window)){ toast('Notifications non supportées sur ce navigateur'); $('setReminders').checked=false; return; }
+    const perm = await Notification.requestPermission();
+    if(perm!=='granted'){ toast('Autorise les notifications pour activer les rappels'); $('setReminders').checked=false; return; }
+    state.settings.reminders = true;
+    await registerPeriodicSync();
+    toast('🔔 Rappels activés !');
+  }else{
+    state.settings.reminders = false;
+    try{ const reg = await navigator.serviceWorker.ready; await reg.periodicSync.unregister('vocadex-reminder'); }catch(e){}
+  }
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  writeSwMeta(); refreshNotifInfo();
+}
+async function registerPeriodicSync(){
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    if('periodicSync' in reg){
+      const st = await navigator.permissions.query({name:'periodic-background-sync'});
+      if(st.state==='granted'){
+        await reg.periodicSync.register('vocadex-reminder', {minInterval: 12*60*60*1000});
+        return true;
+      }
+    }
+  }catch(e){ console.warn('periodicSync', e); }
+  return false;
+}
+function refreshNotifInfo(){
+  const el = $('notifInfo'); if(!el) return;
+  if(!state.settings.reminders){ el.textContent=''; return; }
+  el.textContent = ('Notification' in window && Notification.permission==='granted')
+    ? '✅ Rappels actifs (app installée sur l’écran d’accueil = rappels même app fermée)'
+    : '⚠️ Notifications non autorisées';
+}
+/* Le SW a besoin d'un instantané des données pour calculer les mots dus, app fermée */
+async function writeSwMeta(){
+  try{
+    const cache = await caches.open('vocadex-meta');
+    const cards = [];
+    for(const w of state.words) for(const d of directionsActive())
+      cards.push({last:w.srs[d].last, streak:w.srs[d].streak, seen:w.srs[d].right+w.srs[d].wrong});
+    await cache.put('/meta.json', new Response(JSON.stringify({
+      lastOpen: Date.now(), reminders: state.settings.reminders, cards
+    })));
+  }catch(e){}
+}
+
+/* ---------------------- Démarrage ---------------------- */
+load();
+updateHeader(); renderDex(); updateDueBadge(); writeSwMeta();
+if(state.settings.token){ syncNow(false); }
+window.addEventListener('online', ()=>scheduleSync());
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(()=>{ if(state.settings.reminders) registerPeriodicSync(); });
+}
+
+/* Invite d'installation */
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();
+  if(!localStorage.getItem('vocadex.installHintShown')){
+    toast('💡 Installe VocaDex : menu Chrome → « Ajouter à l’écran d’accueil »', 5000);
+    localStorage.setItem('vocadex.installHintShown','1');
+  }
+});
+</script>
+</body>
+</html>
