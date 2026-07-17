@@ -1,5 +1,5 @@
 /* VocaDex service worker */
-const VERSION = '1.1.1';
+const VERSION = '1.2.0';
 const CACHE = 'vocadex-' + VERSION;
 const ASSETS = ['.', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 

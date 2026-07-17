@@ -434,7 +434,7 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
 /* ======================================================================
    VocaDex v1.1.0 — Pokédex de vocabulaire anglais
    ====================================================================== */
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.2.0';
 document.getElementById('verLabel').textContent = 'v' + APP_VERSION;
 
 /* ---------------------- État ---------------------- */
@@ -472,6 +472,10 @@ function toast(msg, ms=2600){
 function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function hash(s){ let h=0; for(const c of s) h=(h*31 + c.charCodeAt(0))>>>0; return h; }
 function today(){ return new Date().toISOString().slice(0,10); }
+function timestamp(){
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}-${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
+}
 
 /* ---------------------- Skins / apparence ---------------------- */
 const THEMES = {
@@ -692,6 +696,7 @@ function openWord(id){
     <div class="linkrow">
       <a href="${links.reverso}" target="_blank" rel="noopener">Reverso Context ↗</a>
       <a href="${links.wordref}" target="_blank" rel="noopener">WordReference ↗</a>
+      <a href="${links.linguee}" target="_blank" rel="noopener">Linguee ↗</a>
       <a href="${links.urban}" target="_blank" rel="noopener">Urban Dictionary ↗</a>
       <a href="${links.cambridge}" target="_blank" rel="noopener">Cambridge ↗</a>
     </div>
@@ -707,7 +712,8 @@ function wordLinks(en){
     reverso: `https://context.reverso.net/traduction/anglais-francais/${e}`,
     wordref: `https://www.wordreference.com/enfr/${e}`,
     urban:   `https://www.urbandictionary.com/define.php?term=${e}`,
-    cambridge:`https://dictionary.cambridge.org/dictionary/english-french/${e}`
+    cambridge:`https://dictionary.cambridge.org/dictionary/english-french/${e}`,
+    linguee: `https://www.linguee.fr/francais-anglais/search?source=anglais&query=${e}`
   };
 }
 function closeModal(){ $('modalWrap').classList.remove('open'); }
@@ -844,7 +850,7 @@ async function suggestTranslations(word){
     for(const m of (j.matches||[]).sort((a,b)=>(b.match||0)-(a.match||0))) push(m.translation);
     const input = $('capTrans');
     if(input && !input.value.trim() && cand.length){
-      input.value = cand.slice(0,2).join(', ');
+      input.value = cand.slice(0,4).join(', ');
       const h = $('transHint'); if(h) h.textContent = '(suggestion automatique — corrige si besoin !)';
     }
   }catch(e){ /* hors-ligne : silencieux */ }
@@ -1047,7 +1053,7 @@ function saveSettings(){
 function exportData(){
   const blob = new Blob([JSON.stringify(exportableState(),null,2)], {type:'application/json'});
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'vocadex-export-'+today()+'.json';
+  a.href = URL.createObjectURL(blob); a.download = 'VocaDex-'+timestamp()+'.json';
   a.click(); URL.revokeObjectURL(a.href);
 }
 function importData(ev){
@@ -1304,6 +1310,25 @@ if('serviceWorker' in navigator){
   });
 }
 
+/* ---------------------- Bouton Retour (Android) ---------------------- */
+history.pushState({vocadex:true}, '');
+let lastBackPress = 0;
+window.addEventListener('popstate', ()=>{
+  const repush = ()=>history.pushState({vocadex:true}, '');
+  if($('modalWrap').classList.contains('open')){ closeModal(); repush(); return; }
+  if($('captureAnim').classList.contains('show')){ dismissCaptureAnim(); repush(); return; }
+  if($('tourWrap').classList.contains('open')){ endTour(); repush(); return; }
+  if(session){ endReview(true); repush(); return; }
+  const active = document.querySelector('nav button.active');
+  if(active && active.id!=='tab-dex'){ goTab('dex'); repush(); return; }
+  // Sur le menu principal : double pression pour quitter
+  const now = Date.now();
+  if(now - lastBackPress < 2200){ history.back(); return; }
+  lastBackPress = now;
+  toast('Presser une nouvelle fois « Retour » pour quitter l’application');
+  repush();
+});
+
 /* Guide au premier lancement */
 if(!localStorage.getItem('vocadex.tourDone')) startTour();
 
@@ -1316,6 +1341,6 @@ window.addEventListener('beforeinstallprompt', e=>{
   }
 });
 </script>
-<!-- VocaDex v1.1.1 -->
+<!-- VocaDex v1.2.0 -->
 </body>
 </html>
