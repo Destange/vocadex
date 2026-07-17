@@ -197,21 +197,22 @@ label{font-size:.85rem; color:var(--muted);}
 #captureAnim .sub{color:var(--muted);}
 
 /* ---------- Révision ---------- */
-.flashwrap{max-width:480px; margin:0 auto;}
+.flashwrap{max-width:520px; margin:0 auto; perspective:1000px;}
 .progress{background:var(--panel2); height:8px; border-radius:6px; overflow:hidden; margin-bottom:14px;}
 .progress div{height:100%; background:var(--accent); transition:width .25s;}
 .flashcard{
   background:linear-gradient(150deg,var(--panel),var(--panel2));
   border:2px solid #3a3a55; border-radius:18px;
-  min-height:250px; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:10px; padding:24px 18px; cursor:pointer; text-align:center; position:relative;
+  min-height:min(52dvh,420px); display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:12px; padding:28px 18px; cursor:pointer; text-align:center; position:relative;
+  will-change:transform;
 }
 .flashcard .dir{position:absolute; top:10px; left:14px; font-size:.7rem; color:var(--muted); letter-spacing:1px;}
 .flashcard .cre{position:absolute; top:8px; right:14px; font-size:1.5rem;}
-.flashcard .big{font-size:1.9rem; font-weight:800; word-break:break-word;}
+.flashcard .big{font-size:2.3rem; font-weight:800; word-break:break-word;}
 .flashcard .ph{color:var(--accent); font-size:.95rem;}
 .flashcard .tap{color:var(--muted); font-size:.8rem; margin-top:8px;}
-.flashcard .answer{font-size:1.4rem; font-weight:700; color:#a5d6a7;}
+.flashcard .answer{font-size:1.7rem; font-weight:700; color:#a5d6a7;}
 .flashcard .mini{font-size:.85rem; color:var(--muted); line-height:1.5;}
 .answerbtns{display:flex; gap:12px; margin-top:16px;}
 .answerbtns button{flex:1; font-size:1.05rem; padding:15px;}
@@ -219,6 +220,12 @@ label{font-size:.85rem; color:var(--muted);}
 .reviewend{text-align:center; padding:20px 0;}
 .reviewend .bigscore{font-size:2.6rem; font-weight:800; margin:10px 0;}
 .evoline{background:var(--panel2); border-radius:10px; padding:10px 12px; margin:8px 0; font-size:.92rem;}
+.hintrow{text-align:center; margin-top:12px;}
+.hintline{font-family:'Courier New',monospace; font-size:1.35rem; letter-spacing:3px; color:var(--legendaire); min-height:1.5em; word-break:break-all;}
+.hintconfirm{display:flex; align-items:center; gap:10px; justify-content:center; margin-top:10px;
+  background:var(--panel); border:1px solid #3a3a55; border-radius:12px; padding:10px 12px; font-size:.92rem;}
+.hintconfirm .btn{flex:0 0 auto;}
+.stoprow{text-align:center; margin-top:16px;}
 
 /* ---------- Badges ---------- */
 .badgegrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:10px; margin-top:10px;}
@@ -335,11 +342,17 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
       <div class="flashwrap">
         <div class="progress"><div id="revProgress" style="width:0%"></div></div>
         <div class="flashcard" id="flashcard" onclick="flipCard()"></div>
+        <div class="hintrow"><button class="btn sec small" id="btnHint" onclick="requestHint()">🔑 Indice</button></div>
+        <div class="hintconfirm" id="hintConfirm" style="display:none">
+          <span>Souhaites-tu avoir un indice ?</span>
+          <button class="btn small" onclick="giveHint()">Oui</button>
+          <button class="btn sec small" onclick="hideHintConfirm()">Non</button>
+        </div>
         <div class="answerbtns" id="answerBtns" style="visibility:hidden">
           <button class="btn ko" onclick="answer(false)">✗ Raté</button>
           <button class="btn ok" onclick="answer(true)">✓ Trouvé</button>
         </div>
-        <button class="btn sec full small" style="margin-top:14px" onclick="endReview(true)">Arrêter la session</button>
+        <div class="stoprow"><button class="btn sec small" onclick="endReview(true)">Arrêter la session</button></div>
       </div>
     </div>
     <div id="reviewEnd" style="display:none"></div>
@@ -434,7 +447,7 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
 /* ======================================================================
    VocaDex v1.1.0 — VocaDex de vocabulaire anglais
    ====================================================================== */
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 document.getElementById('verLabel').textContent = 'v' + APP_VERSION;
 
 /* ---------------------- État ---------------------- */
@@ -658,7 +671,7 @@ function renderDex(){
   if(dexFilter==='legendaire') list = list.filter(w => w.rarity==='legendaire');
 
   $('dexGrid').innerHTML = list.map(w => `
-    <div class="dexcard r-${w.rarity}" onclick="openWord(${w.id})">
+    <div class="dexcard r-${w.rarity}" data-id="${w.id}" onclick="openWord(${w.id})">
       <span class="num">#${String(w.num).padStart(3,'0')}</span>
       <span class="cre">${stageIcon(w)}</span>
       <span class="w">${esc(w.en)}</span>
@@ -927,44 +940,105 @@ function startReview(all){
 function showCard(){
   const c = session.cards[session.idx];
   session.flipped = false;
+  session.hint = { revealed: new Set(), level: 0 };
   $('revProgress').style.width = (session.idx/session.cards.length*100)+'%';
   $('answerBtns').style.visibility='hidden';
+  $('btnHint').style.visibility='visible';
+  hideHintConfirm();
+  const fc = $('flashcard');
+  fc.style.transition=''; fc.style.transform='';
   const w = c.w;
   if(c.dir==='enfr'){
-    $('flashcard').innerHTML = `
-      <span class="dir">EN → FR</span><span class="cre">${stageIcon(w)}</span>
+    fc.innerHTML = `
+      <span class="cre">${stageIcon(w)}</span>
       <div class="big">${esc(w.en)}</div>
       ${w.phonetic?`<div class="ph">${esc(w.phonetic)}</div>`:''}
       <button class="btn sec small" onclick="event.stopPropagation();playWord(${w.id})">🔊 Écouter</button>
-      <div class="tap">👆 Appuie pour voir la traduction</div>`;
+      <div class="hintline" id="hintLine"></div>`;
   }else{
-    $('flashcard').innerHTML = `
-      <span class="dir">FR → EN</span><span class="cre">❓</span>
+    fc.innerHTML = `
+      <span class="cre">❓</span>
       <div class="big" style="color:#a5d6a7">${esc(w.translations.join(', '))}</div>
-      <div class="tap">👆 Appuie pour voir le mot anglais</div>`;
+      <div class="hintline" id="hintLine"></div>`;
   }
 }
+
+/* ---------- Indices (jeu du pendu) ---------- */
+function hintTarget(){
+  const c = session.cards[session.idx];
+  // FR→EN : le mot anglais ; EN→FR : la première traduction (avant la première virgule)
+  return (c.dir==='fren' ? c.w.en : (c.w.translations[0]||'')).trim();
+}
+function requestHint(){
+  if(!session || session.flipped) return;
+  if(session.hint.level===0){ $('hintConfirm').style.display='flex'; return; }
+  giveHint();   // à partir du 2e indice : sans confirmation
+}
+function giveHint(){
+  hideHintConfirm();
+  if(!session || session.flipped) return;
+  const t = hintTarget(); if(!t) return;
+  const hnt = session.hint;
+  if(hnt.level===0){
+    hnt.revealed.add(0);                       // 1er indice : longueur + première lettre
+  }else{
+    const hidden = [];
+    for(let i=1;i<t.length;i++) if(t[i]!==' ' && !hnt.revealed.has(i)) hidden.push(i);
+    if(hidden.length>1) hnt.revealed.add(hidden[Math.floor(Math.random()*hidden.length)]);
+  }
+  hnt.level++;
+  renderHintLine();
+}
+function renderHintLine(){
+  const el = $('hintLine'); if(!el || !session) return;
+  const t = hintTarget(), hnt = session.hint;
+  el.textContent = [...t].map((ch,i)=> ch===' ' ? '\u00a0\u00a0' : (hnt.revealed.has(i)? ch : '_')).join(' ');
+}
+function hideHintConfirm(){ const el=$('hintConfirm'); if(el) el.style.display='none'; }
 
 function flipCard(){
   if(!session || session.flipped) return;
   session.flipped = true;
+  const fc = $('flashcard');
+  fc.style.transition='transform .17s ease-in';
+  fc.style.transform='rotateY(90deg)';
+  setTimeout(()=>{
+    revealAnswer();
+    fc.style.transition='transform .17s ease-out';
+    fc.style.transform='rotateY(0deg)';
+  }, 170);
+}
+function revealAnswer(){
   const c = session.cards[session.idx], w = c.w;
   const hint = w.meanings.length ? `<div class="mini">${esc(w.meanings[0].def.slice(0,140))}${w.meanings[0].def.length>140?'…':''}</div>` : '';
   if(c.dir==='enfr'){
     $('flashcard').innerHTML = `
-      <span class="dir">EN → FR</span><span class="cre">${stageIcon(w)}</span>
+      <span class="cre">${stageIcon(w)}</span>
       <div class="big">${esc(w.en)}</div>
       <div class="answer">→ ${esc(w.translations.join(', '))}</div>${hint}`;
   }else{
     $('flashcard').innerHTML = `
-      <span class="dir">FR → EN</span><span class="cre">${stageIcon(w)}</span>
+      <span class="cre">${stageIcon(w)}</span>
       <div class="big" style="color:#a5d6a7">${esc(w.translations.join(', '))}</div>
       <div class="answer">→ ${esc(w.en)}</div>
       ${w.phonetic?`<div class="ph">${esc(w.phonetic)}</div>`:''}
       <button class="btn sec small" onclick="event.stopPropagation();playWord(${w.id})">🔊 Écouter</button>`;
   }
   $('answerBtns').style.visibility='visible';
+  $('btnHint').style.visibility='hidden';
+  hideHintConfirm();
 }
+
+/* ---------- Swipe gauche/droite pour retourner la carte ---------- */
+(function(){
+  const fc = document.getElementById('flashcard');
+  let sx=0, sy=0;
+  fc.addEventListener('touchstart', e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; }, {passive:true});
+  fc.addEventListener('touchend', e=>{
+    const t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5) flipCard();
+  }, {passive:true});
+})();
 
 function answer(ok){
   const c = session.cards[session.idx], srs = c.w.srs[c.dir];
@@ -1009,6 +1083,40 @@ function endReview(aborted){
   session = null;
   renderDex();
 }
+
+/* ---------------------- Actions rapides (appui long sur une carte) ---------------------- */
+function quickActions(id){
+  const w = state.words.find(x=>x.id===id); if(!w) return;
+  $('modal').innerHTML = `
+    <h3 style="margin-top:0">${stageIcon(w)} ${esc(w.en)}</h3>
+    <div class="transbig" style="margin-top:0">🇫🇷 ${esc(w.translations.join(', '))}</div>
+    <button class="btn sec full" style="margin:5px 0" onclick="openWord(${id})">📖 Voir la fiche</button>
+    <button class="btn sec full" style="margin:5px 0" onclick="editWord(${id})">✏️ Modifier</button>
+    <button class="btn sec full" style="margin:5px 0; color:var(--ko)" onclick="deleteWord(${id})">🗑️ Relâcher</button>
+    <button class="btn full" style="margin:5px 0" onclick="closeModal()">Annuler</button>`;
+  $('modalWrap').classList.add('open');
+}
+(function(){
+  const grid = document.getElementById('dexGrid');
+  let lpTimer=null, lpFired=false;
+  grid.addEventListener('touchstart', e=>{
+    const card = e.target.closest('.dexcard'); if(!card) return;
+    lpFired = false;
+    lpTimer = setTimeout(()=>{
+      lpFired = true;
+      if(navigator.vibrate) navigator.vibrate(35);
+      quickActions(+card.dataset.id);
+    }, 520);
+  }, {passive:true});
+  ['touchmove','touchend','touchcancel'].forEach(ev=>grid.addEventListener(ev, ()=>clearTimeout(lpTimer), {passive:true}));
+  grid.addEventListener('click', e=>{
+    if(lpFired){ e.stopPropagation(); e.preventDefault(); lpFired=false; }
+  }, true);
+  grid.addEventListener('contextmenu', e=>{
+    const card = e.target.closest('.dexcard');
+    if(card){ e.preventDefault(); quickActions(+card.dataset.id); }
+  });
+})();
 
 /* ---------------------- Badges ---------------------- */
 const BADGES = [
@@ -1354,6 +1462,6 @@ window.addEventListener('beforeinstallprompt', e=>{
   }
 });
 </script>
-<!-- VocaDex v1.3.0 -->
+<!-- VocaDex v1.4.0 -->
 </body>
 </html>
