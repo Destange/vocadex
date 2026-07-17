@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1b5e20">
-<title>VocaDex — Pokédex de vocabulaire</title>
+<title>VocaDex — Vocabulaire anglais</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -21,7 +21,7 @@ html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
   font-family:'Segoe UI',Roboto,system-ui,sans-serif; height:100%;}
 body{display:flex; flex-direction:column; min-height:100dvh;}
 
-/* ---------- Header pokédex ---------- */
+/* ---------- Header VocaDex ---------- */
 header{
   background:linear-gradient(160deg,var(--primary) 60%,var(--primary-dark));
   padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
@@ -105,7 +105,7 @@ label{font-size:.85rem; color:var(--muted);}
 .chkrow{display:flex; align-items:center; gap:10px; margin:8px 0; font-size:.95rem; color:var(--text);}
 .chkrow input{width:20px; height:20px; accent-color:var(--primary);}
 
-/* ---------- Pokédex ---------- */
+/* ---------- VocaDex ---------- */
 .searchbar{display:flex; gap:8px; margin-bottom:10px;}
 .searchbar input{margin:0;}
 .filters{display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px;}
@@ -285,7 +285,7 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
 <div id="updateBar" onclick="applyUpdate()">🔄 Nouvelle version disponible — appuie ici pour mettre à jour</div>
 
 <main>
-  <!-- ================= POKÉDEX ================= -->
+  <!-- ================= VOCADEX ================= -->
   <section id="view-dex" class="active">
     <div id="dueBanner" class="duebanner" style="display:none" onclick="goTab('review')">
       <div class="ic">🎴</div>
@@ -419,7 +419,7 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
 </main>
 
 <nav>
-  <button id="tab-dex" class="active" onclick="goTab('dex')"><span class="ic">📖</span>Pokédex</button>
+  <button id="tab-dex" class="active" onclick="goTab('dex')"><span class="ic">📖</span>VocaDex</button>
   <button id="tab-capture" onclick="goTab('capture')"><span class="ic">➕</span>Capturer</button>
   <button id="tab-review" onclick="goTab('review')"><span class="ic bdg" id="revBadge" data-n="0">🎴</span>Réviser</button>
   <button id="tab-settings" onclick="goTab('settings')"><span class="ic">⚙️</span>Réglages</button>
@@ -432,9 +432,9 @@ hr{border:none; border-top:1px solid #3a3a55; margin:14px 0;}
 
 <script>
 /* ======================================================================
-   VocaDex v1.1.0 — Pokédex de vocabulaire anglais
+   VocaDex v1.1.0 — VocaDex de vocabulaire anglais
    ====================================================================== */
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 document.getElementById('verLabel').textContent = 'v' + APP_VERSION;
 
 /* ---------------------- État ---------------------- */
@@ -443,6 +443,7 @@ let state = {
   words: [],            // fiches
   nextNum: 1,           // prochain numéro de capture
   badges: {},           // {id: timestamp}
+  deleted: {},          // pierres tombales {mot: timestamp de suppression}
   totalReviews: 0,
   settings: { token:'', gistId:'', reminders:false, direction:'both', goal:15, theme:'foret', bannerColor:'' },
   updatedAt: 0
@@ -454,6 +455,7 @@ function load(){
     const raw = localStorage.getItem(LS_KEY);
     if(raw){ const s = JSON.parse(raw); state = Object.assign(state, s);
       state.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings||{}); }
+    state.deleted = state.deleted || {};
   }catch(e){ console.error(e); }
 }
 function persist(pushSync=true){
@@ -482,7 +484,7 @@ const THEMES = {
   foret:    {nm:'🌲 Forêt profonde', primary:'#1b5e20', dark:'#0d3a12', accent:'#8bc34a', bg:'#0f1a10', panel:'#1a2b1c', panel2:'#243a26', muted:'#9db3a0', deco:'🌿'},
   riviere:  {nm:'🏞️ Rivière',        primary:'#00695c', dark:'#00382f', accent:'#4dd0e1', bg:'#0c1618', panel:'#14262a', panel2:'#1d3438', muted:'#96b2b5', deco:'💧'},
   bois:     {nm:'🪵 Bois & racines',  primary:'#5d4037', dark:'#382018', accent:'#ffb74d', bg:'#171210', panel:'#241c18', panel2:'#312620', muted:'#b3a396', deco:'🍂'},
-  classique:{nm:'🔴 Pokédex classique',primary:'#c62828', dark:'#8e1c1c', accent:'#4fc3f7', bg:'#12121f', panel:'#1e1e32', panel2:'#28283f', muted:'#9aa0b5', deco:'⚪'},
+  classique:{nm:'🔴 VocaDex classique',primary:'#c62828', dark:'#8e1c1c', accent:'#4fc3f7', bg:'#12121f', panel:'#1e1e32', panel2:'#28283f', muted:'#9aa0b5', deco:'⚪'},
   nuit:     {nm:'🌙 Nuit étoilée',    primary:'#4527a0', dark:'#28166b', accent:'#b39ddb', bg:'#0e0c18', panel:'#1a1730', panel2:'#252140', muted:'#a29ab8', deco:'✨'},
   sakura:   {nm:'🌸 Sakura',          primary:'#ad1457', dark:'#700d38', accent:'#f48fb1', bg:'#1a1016', panel:'#2b1a24', panel2:'#3a2430', muted:'#bfa3ae', deco:'🌸'}
 };
@@ -525,7 +527,7 @@ function renderSkins(){
   const bc = $('setBanner'); if(bc) bc.value = state.settings.bannerColor || (THEMES[state.settings.theme]||THEMES.foret).primary;
 }
 
-/* ---------------------- Thème pokédex ---------------------- */
+/* ---------------------- Thème VocaDex ---------------------- */
 const CREATURES = {
   commun:     ['🐛','🐭','🐤','🐟','🐌','🐿️','🐸','🐰'],
   rare:       ['🦊','🦉','🐺','🦈','🐍','🦅','🐢','🦡'],
@@ -637,7 +639,7 @@ function updateDueBadge(){
   } else banner.style.display='none';
 }
 
-/* ---------------------- Pokédex ---------------------- */
+/* ---------------------- VocaDex ---------------------- */
 let dexFilter='all';
 function setFilter(btn){
   dexFilter = btn.dataset.f;
@@ -755,6 +757,8 @@ function saveEdit(id){
 function deleteWord(id){
   const w = state.words.find(x=>x.id===id); if(!w) return;
   if(!confirm(`Relâcher « ${w.en} » dans la nature ? Cette fiche sera supprimée.`)) return;
+  state.deleted = state.deleted || {};
+  state.deleted[w.en.toLowerCase()] = Date.now();   // pierre tombale : la synchro ne le ressuscitera pas
   state.words = state.words.filter(x=>x.id!==id);
   persist(); closeModal(); renderDex(); toast(`« ${w.en} » a été relâché 🕊️`);
 }
@@ -871,6 +875,7 @@ function captureWord(){
     addedAt: Date.now(), updatedAt: Date.now(),
     srs: { enfr:newSrs(), fren:newSrs() }
   };
+  if(state.deleted) delete state.deleted[word];
   state.words.push(w);
   persist(); checkBadges();
   pendingWord = null;
@@ -1071,7 +1076,7 @@ function importData(ev){
 
 /* ---------------------- Sync Gist ---------------------- */
 const GIST_FILE = 'vocadex-data.json';
-const GIST_DESC = 'VocaDex — sauvegarde du pokédex de vocabulaire';
+const GIST_DESC = 'VocaDex — sauvegarde du VocaDex de vocabulaire';
 let syncTimer = null, syncing = false;
 
 function ghHeaders(){
@@ -1162,6 +1167,10 @@ async function findOrCreateGist(){
   return g.id;
 }
 function mergeStates(local, remote){
+  // pierres tombales fusionnées : la suppression la plus récente est conservée
+  const deleted = Object.assign({}, remote.deleted||{});
+  for(const [k,t] of Object.entries(local.deleted||{}))
+    if(!deleted[k] || t>deleted[k]) deleted[k]=t;
   // fusion par mot : updatedAt le plus récent gagne ; union des deux ensembles
   const map = new Map();
   for(const w of local.words) map.set(w.en.toLowerCase(), w);
@@ -1170,6 +1179,9 @@ function mergeStates(local, remote){
     const cur = map.get(k);
     if(!cur || (w.updatedAt||0) > (cur.updatedAt||0)) map.set(k, w);
   }
+  // un mot supprimé après sa dernière modification reste supprimé
+  for(const [k,t] of Object.entries(deleted))
+    if(map.has(k) && (map.get(k).updatedAt||0) <= t) map.delete(k);
   const words = [...map.values()].sort((a,b)=>(a.num||0)-(b.num||0));
   // renuméroter les collisions éventuelles de numéros
   const seen = new Set(); let maxNum = 0;
@@ -1183,6 +1195,7 @@ function mergeStates(local, remote){
   out.nextNum = Math.max(local.nextNum||1, remote.nextNum||1, maxNum+1);
   out.totalReviews = Math.max(local.totalReviews||0, remote.totalReviews||0);
   out.badges = Object.assign({}, remote.badges||{}, local.badges||{});
+  out.deleted = deleted;
   out.settings = Object.assign({}, local.settings);   // les réglages restent locaux
   return out;
 }
@@ -1239,9 +1252,9 @@ async function writeSwMeta(){
 
 /* ---------------------- Tour guide ---------------------- */
 const TOUR = [
-  {ic:'🌿', h:'Bienvenue dans VocaDex !', p:'Ton pokédex personnel de vocabulaire anglais. Chaque mot inconnu que tu croises est une créature à capturer, apprivoiser… et maîtriser !', tab:null},
+  {ic:'🌿', h:'Bienvenue dans VocaDex !', p:'Ton VocaDex personnel de vocabulaire anglais. Chaque mot inconnu que tu croises est une créature à capturer, apprivoiser… et maîtriser !', tab:null},
   {ic:'➕', h:'Capture tes mots', p:'Tu croises un mot anglais inconnu ? Direction l’onglet Capturer : l’app va chercher sa définition, sa prononciation et des exemples, et te propose même une traduction. Coche « argot » pour les mots de la rue (Urban Dictionary).', tab:'capture'},
-  {ic:'📖', h:'Ton Pokédex', p:'Tous tes mots capturés, numérotés et classés par rareté. Appuie sur une fiche pour voir définitions, exemples, prononciation 🔊 et liens vers Reverso Context ou WordReference.', tab:'dex'},
+  {ic:'📖', h:'Ton VocaDex', p:'Tous tes mots capturés, numérotés et classés par rareté. Appuie sur une fiche pour voir définitions, exemples, prononciation 🔊 et liens vers Reverso Context ou WordReference.', tab:'dex'},
   {ic:'🎴', h:'Révise en flashcards', p:'L’app te fait réviser intelligemment : un mot raté revient souvent, un mot su s’espace de plus en plus. À force de bonnes réponses, tes mots évoluent : 🥚 → ✨ → 👑 !', tab:'review'},
   {ic:'☁️', h:'Ne perds jamais rien', p:'Dans Réglages, colle ton token GitHub : tes mots sont sauvegardés automatiquement dans le nuage. Active aussi les rappels pour ne pas oublier de réviser.', tab:'settings'},
   {ic:'🐣', h:'C’est parti !', p:'Capture ton premier mot et commence ta collection. Attrape-les tous !', tab:'capture'}
@@ -1341,6 +1354,6 @@ window.addEventListener('beforeinstallprompt', e=>{
   }
 });
 </script>
-<!-- VocaDex v1.2.0 -->
+<!-- VocaDex v1.3.0 -->
 </body>
 </html>
